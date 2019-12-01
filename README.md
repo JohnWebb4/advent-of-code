@@ -1,4 +1,4 @@
-# Advent of Code
+# Advent of Code 2019
 
 ## Goal
 
@@ -10,5 +10,8 @@ Adding a new package for each day under `com.advent.code`.
 
 Adding applicable JUnit tests.
 
-I have competed 0 day(s).
+I have competed 1 day(s).
 
+## Sections
+
+Day 1: Tyranny of the Rocket Equation

@@ -1,0 +1,4 @@
+./gradlew test --daemon
+./gradlew spotlessApply --daemon
+
+exit 0

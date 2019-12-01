@@ -10,6 +10,7 @@ plugins {
 }
 
 apply plugin: "com.diffplug.gradle.spotless"
+apply from: rootProject.file('gradle/install-git-hooks.gradle')
 
 group 'org.example'
 version '1.0-SNAPSHOT'
