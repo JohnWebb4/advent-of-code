@@ -10,8 +10,9 @@ Adding a new package for each day under `com.advent.code`.
 
 Adding applicable JUnit tests.
 
-I have competed 1 day(s).
+I have competed 2 day(s).
 
 ## Sections
 
 Day 1: Tyranny of the Rocket Equation
+Day 2: 1202 Program Alarm
