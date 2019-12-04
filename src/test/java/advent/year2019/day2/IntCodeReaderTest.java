@@ -26,6 +26,8 @@ public class IntCodeReaderTest {
       while ((codeString = br.readLine()) != null) {
         codes = Arrays.stream(codeString.split(",")).mapToInt(i->Integer.parseInt(i)).toArray();
       }
+
+      br.close();
     } catch(Exception e) {
       System.out.println(String.format("Error reading 2019 day 2 int codes %s"));
     }
