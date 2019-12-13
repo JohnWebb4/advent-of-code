@@ -30,61 +30,64 @@ public class ThermalIntCodeReader {
     public static IntResult runIntCodes(int[] codes, int[] inputs) throws IllegalArgumentException {
         int index = 0;
         int inputIndex = 0;
+        int[] mutableCodes = new int[codes.length];
         ArrayList<Integer> output = new ArrayList<>();
 
-        while (index < codes.length) {
-            int[] operations = getOprations(codes[index]);
+        System.arraycopy(codes, 0, mutableCodes, 0, mutableCodes.length);
+
+        while (index < mutableCodes.length) {
+            int[] operations = getOprations(mutableCodes[index]);
             int operation = operations[0];
 
             if (operation == 1) {
-                int param1 = codes[index + 1];
+                int param1 = mutableCodes[index + 1];
                 int param1Mode = operations[1];
-                int param1Value = getParamValue(param1, param1Mode, codes);
+                int param1Value = getParamValue(param1, param1Mode, mutableCodes);
 
-                int param2 = codes[index + 2];
+                int param2 = mutableCodes[index + 2];
                 int param2Mode = operations[2];
-                int param2Value = getParamValue(param2, param2Mode, codes);
+                int param2Value = getParamValue(param2, param2Mode, mutableCodes);
 
-                int targetIndex = codes[index + 3];
+                int targetIndex = mutableCodes[index + 3];
 
-                codes[targetIndex] = param1Value + param2Value;
+                mutableCodes[targetIndex] = param1Value + param2Value;
 
                 index += 4;
             } else if (operation == 2) {
-                int param1 = codes[index + 1];
+                int param1 = mutableCodes[index + 1];
                 int param1Mode = operations[1];
-                int param1Value = getParamValue(param1, param1Mode, codes);
+                int param1Value = getParamValue(param1, param1Mode, mutableCodes);
 
-                int param2 = codes[index + 2];
+                int param2 = mutableCodes[index + 2];
                 int param2Mode = operations[2];
-                int param2Value = getParamValue(param2, param2Mode, codes);
+                int param2Value = getParamValue(param2, param2Mode, mutableCodes);
 
-                int targetIndex = codes[index + 3];
+                int targetIndex = mutableCodes[index + 3];
 
-                codes[targetIndex] = param1Value * param2Value;
+                mutableCodes[targetIndex] = param1Value * param2Value;
 
                 index += 4;
             } else if (operation == 3) {
-                int targetIndex = codes[index + 1];
+                int targetIndex = mutableCodes[index + 1];
 
-                codes[targetIndex] = inputs[inputIndex];
+                mutableCodes[targetIndex] = inputs[inputIndex];
 
                 inputIndex++;
                 index += 2;
             } else if (operation == 4) {
-                int targetIndex = codes[index + 1];
+                int targetIndex = mutableCodes[index + 1];
 
-                output.add(codes[targetIndex]);
+                output.add(mutableCodes[targetIndex]);
 
                 index += 2;
             } else if (operation == 5) {
-                int param1 = codes[index + 1];
+                int param1 = mutableCodes[index + 1];
                 int param1Mode = operations[1];
-                int param1Value = getParamValue(param1, param1Mode, codes);
+                int param1Value = getParamValue(param1, param1Mode, mutableCodes);
 
-                int param2 = codes[index + 2];
+                int param2 = mutableCodes[index + 2];
                 int param2Mode = operations[2];
-                int param2Value = getParamValue(param2, param2Mode, codes);
+                int param2Value = getParamValue(param2, param2Mode, mutableCodes);
 
                 if (param1Value != 0) {
                     index = param2Value;
@@ -92,13 +95,13 @@ public class ThermalIntCodeReader {
                     index += 3;
                 }
             } else if (operation == 6) {
-                int param1 = codes[index + 1];
+                int param1 = mutableCodes[index + 1];
                 int param1Mode = operations[1];
-                int param1Value = getParamValue(param1, param1Mode, codes);
+                int param1Value = getParamValue(param1, param1Mode, mutableCodes);
 
-                int param2 = codes[index + 2];
+                int param2 = mutableCodes[index + 2];
                 int param2Mode = operations[2];
-                int param2Value = getParamValue(param2, param2Mode, codes);
+                int param2Value = getParamValue(param2, param2Mode, mutableCodes);
 
                 if (param1Value == 0) {
                     index = param2Value;
@@ -106,49 +109,49 @@ public class ThermalIntCodeReader {
                     index += 3;
                 }
             } else if (operation == 7) {
-                int param1 = codes[index + 1];
+                int param1 = mutableCodes[index + 1];
                 int param1Mode = operations[1];
-                int param1Value = getParamValue(param1, param1Mode, codes);
+                int param1Value = getParamValue(param1, param1Mode, mutableCodes);
 
-                int param2 = codes[index + 2];
+                int param2 = mutableCodes[index + 2];
                 int param2Mode = operations[2];
-                int param2Value = getParamValue(param2, param2Mode, codes);
+                int param2Value = getParamValue(param2, param2Mode, mutableCodes);
 
-                int targetIndex = codes[index + 3];
+                int targetIndex = mutableCodes[index + 3];
 
                 if (param1Value < param2Value) {
-                    codes[targetIndex] = 1;
+                    mutableCodes[targetIndex] = 1;
                 } else {
-                    codes[targetIndex] = 0;
+                    mutableCodes[targetIndex] = 0;
                 }
 
                 index += 4;
             } else if (operation == 8) {
-                int param1 = codes[index + 1];
+                int param1 = mutableCodes[index + 1];
                 int param1Mode = operations[1];
-                int param1Value = getParamValue(param1, param1Mode, codes);
+                int param1Value = getParamValue(param1, param1Mode, mutableCodes);
 
-                int param2 = codes[index + 2];
+                int param2 = mutableCodes[index + 2];
                 int param2Mode = operations[2];
-                int param2Value = getParamValue(param2, param2Mode, codes);
+                int param2Value = getParamValue(param2, param2Mode, mutableCodes);
 
-                int targetIndex = codes[index + 3];
+                int targetIndex = mutableCodes[index + 3];
 
                 if (param1Value == param2Value) {
-                    codes[targetIndex] = 1;
+                    mutableCodes[targetIndex] = 1;
                 } else {
-                    codes[targetIndex] = 0;
+                    mutableCodes[targetIndex] = 0;
                 }
 
                 index += 4;
             } else if (operation == 99) {
-                return new IntResult(codes, output.stream().mapToInt(i -> i).toArray());
+                return new IntResult(mutableCodes, output.stream().mapToInt(i -> i).toArray());
             } else {
               throw new IllegalArgumentException(String.format("No command %s", operation));
             }
         }
 
-        return new IntResult(codes, output.stream().mapToInt(i -> i).toArray());
+        return new IntResult(mutableCodes, output.stream().mapToInt(i -> i).toArray());
     }
 
     public static IntResult runIntCodes(int[] codes) throws IllegalArgumentException {

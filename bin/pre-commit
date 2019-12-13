@@ -1,4 +1,9 @@
-./gradlew test --daemon
-./gradlew spotlessApply --daemon
+if ! ./gradlew test; then
+  exit 1
+fi
+
+if ! ./gradlew spotlessApply; then
+  exit 1
+fi
 
 exit 0
