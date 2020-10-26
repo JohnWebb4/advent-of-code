@@ -15,7 +15,7 @@ apply from: rootProject.file('gradle/install-git-hooks.gradle')
 group 'org.example'
 version '1.0-SNAPSHOT'
 
-sourceCompatibility = 1.8
+sourceCompatibility = 11
 
 repositories {
 	mavenCentral()
@@ -33,10 +33,10 @@ jar {
 
 spotless {
 	java {
-		licenseHeader '/* Licensed under Apache-2.0 */'	// License header
+		licenseHeader '/* Licensed under Apache-2.0 */'    // License header
 		// Obviously, you can't specify both licenseHeader and licenseHeaderFile at the same time
 
-		importOrder 'java', 'javax', 'org', 'com', 'com.diffplug', ''	// A sequence of package names
+		importOrder 'java', 'javax', 'org', 'com', 'com.diffplug', ''    // A sequence of package names
 		// As before, you can't specify both importOrder and importOrderFile at the same time
 		// You probably want an empty string at the end - all of the imports you didn't specify
 		// explicitly will go there.
