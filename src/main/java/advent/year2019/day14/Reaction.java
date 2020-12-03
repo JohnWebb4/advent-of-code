@@ -44,10 +44,10 @@ public class Reaction {
 
   public Reaction(String reactionString) {
     String[] reactionParts = reactionString.split(" => ");
-    inputs = new HashMap();
+    inputs = new HashMap<>();
     ReactionIngredient[] inputIngredients =
         Arrays.stream(reactionParts[0].split(", "))
-            .map((ingredientString) -> new ReactionIngredient(ingredientString))
+            .map(ReactionIngredient::new)
             .toArray(ReactionIngredient[]::new);
 
     for (ReactionIngredient ingredient : inputIngredients) {
@@ -62,7 +62,7 @@ public class Reaction {
 
     for (String key : this.inputs.keySet()) {
       ReactionIngredient scaledInput =
-          (ReactionIngredient) this.inputs.get(key).scaleIngredient(scale);
+              this.inputs.get(key).scaleIngredient(scale);
 
       scaledInputs.put(key, scaledInput);
     }
