@@ -29,7 +29,7 @@ public class IntCodeReaderTest {
 
       br.close();
     } catch(Exception e) {
-      System.out.println(String.format("Error reading 2019 day 2 int codes %s"));
+    	e.printStackTrace();
     }
 
     try {
@@ -42,7 +42,7 @@ public class IntCodeReaderTest {
         results = Arrays.stream(resultString.split(",")).mapToInt(i->Integer.parseInt(i)).toArray();
       }
     } catch(Exception e) {
-      System.out.println(String.format("Error reading 2019 day 2 int codes %s", e));
+    	e.printStackTrace();
     }
   }
 

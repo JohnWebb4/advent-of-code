@@ -117,7 +117,6 @@ public class HandyHaversacks {
 			Node current = openList.remove();
 
 			if (!current.color.equals("shiny gold")) {
-				System.out.println(String.format("HI %s x %s %s with %s children", current.multiplier, current.count, current.color, current.children.size()));
 				count += current.count * current.multiplier;
 			}
 

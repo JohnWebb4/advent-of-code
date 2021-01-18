@@ -28,7 +28,7 @@ public class ThermalIntCodeReaderTest {
 
             br.close();
         } catch(Exception e) {
-            System.out.println(String.format("Error reading 2019 day 3 int codes %s", e));
+        	e.printStackTrace();
         }
     }
 

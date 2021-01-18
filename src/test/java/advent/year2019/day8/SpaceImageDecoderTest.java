@@ -27,7 +27,7 @@ public class SpaceImageDecoderTest {
 
             br.close();
         } catch(Exception e) {
-            System.out.println(String.format("Error reading 2019 day 2 int codes %s"));
+        	e.printStackTrace();
         }
     }
     public void decodeImage3By2() {

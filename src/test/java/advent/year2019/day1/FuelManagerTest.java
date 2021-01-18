@@ -31,8 +31,8 @@ public class FuelManagerTest {
       masses = massesList.stream().mapToInt(i->i).toArray();
 
       br.close();
-    } catch (Exception err) {
-      System.out.println(String.format("Error reading 2019 day 1 fuel manager masses %e", err));
+    } catch (Exception e) {
+      e.printStackTrace();
     }
   }
 
