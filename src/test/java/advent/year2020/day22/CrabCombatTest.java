@@ -11,49 +11,49 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class CrabCombatTest {
-	public String test1;
-	public String input;
+    public String test1;
+    public String input;
 
-	@Before
-	public void initialize() {
-		test1 = "Player 1:\n" +
-				"9\n" +
-				"2\n" +
-				"6\n" +
-				"3\n" +
-				"1\n" +
-				"\n" +
-				"Player 2:\n" +
-				"5\n" +
-				"8\n" +
-				"4\n" +
-				"7\n" +
-				"10";
+    @Before
+    public void initialize() {
+        test1 = "Player 1:\n" +
+                "9\n" +
+                "2\n" +
+                "6\n" +
+                "3\n" +
+                "1\n" +
+                "\n" +
+                "Player 2:\n" +
+                "5\n" +
+                "8\n" +
+                "4\n" +
+                "7\n" +
+                "10";
 
-		try {
-			input = new String(Files.readAllBytes(Paths.get("./src/test/java/advent/year2020/day22/input.txt")));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
+        try {
+            input = new String(Files.readAllBytes(Paths.get("./src/test/java/advent/year2020/day22/input.txt")));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
-	@Test
-	public void getWinningPlayerScore_306() {
-		assertEquals(306, CrabCombat.getWinningPlayerScore(test1));
-	}
+    @Test
+    public void getWinningPlayerScore_306() {
+        assertEquals(306, CrabCombat.getWinningPlayerScore(test1));
+    }
 
-	@Test
-	public void getWinningPlayerScore_33403() {
-		assertEquals(33403, CrabCombat.getWinningPlayerScore(input));
-	}
+    @Test
+    public void getWinningPlayerScore_33403() {
+        assertEquals(33403, CrabCombat.getWinningPlayerScore(input));
+    }
 
-	@Test
-	public void getWinningRecursivePlayerScore_291() {
-		assertEquals(291, CrabCombat.getWinningRecursivePlayerScore(test1));
-	}
+    @Test
+    public void getWinningRecursivePlayerScore_291() {
+        assertEquals(291, CrabCombat.getWinningRecursivePlayerScore(test1));
+    }
 
-//	@Test
-//	public void getWinningRecursivePlayerScore_1() {
-//		assertEquals(1, CrabCombat.getWinningRecursivePlayerScore(input));
-//	}
+//    @Test
+//    public void getWinningRecursivePlayerScore_29177() {
+//        assertEquals(29177, CrabCombat.getWinningRecursivePlayerScore(input));
+//    }
 }
