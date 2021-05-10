@@ -1,20 +1,20 @@
 /* Licensed under Apache-2.0 */
 package advent.year2020.day18;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 public class OperationOrderTest {
-    public String input;
+    public static String input;
 
-    @Before
-    public void initialize() {
+    @BeforeClass
+    public static void initialize() {
         try {
             input = new String(Files.readAllBytes(Paths.get("./src/test/java/advent/year2020/day18/input.txt")));
         } catch (IOException e) {

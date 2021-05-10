@@ -1,21 +1,21 @@
 /* Licensed under Apache-2.0 */
 package advent.year2020.day12;
 
-import static org.junit.Assert.*;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 public class RainRiskTest {
     public static String test1;
     public static String input;
 
-    @Before
-    public void initialize() {
+    @BeforeClass
+    public static void initialize() {
         test1 = "F10\n" +
                 "N3\n" +
                 "F7\n" +

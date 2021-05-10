@@ -1,17 +1,17 @@
 /* Licensed under Apache-2.0 */
 package advent.year2020.day17;
 
-import static org.junit.Assert.assertEquals;
-
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class ConwayCubesTest {
-    public String test1;
-    public String input;
+import static org.junit.Assert.assertEquals;
 
-    @Before
-    public void initialize() {
+public class ConwayCubesTest {
+    public static String test1;
+    public static String input;
+
+    @BeforeClass
+    public static void initialize() {
         test1 = ".#.\n" +
                 "..#\n" +
                 "###";

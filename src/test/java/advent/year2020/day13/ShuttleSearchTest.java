@@ -1,22 +1,22 @@
 /* Licensed under Apache-2.0 */
 package advent.year2020.day13;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 public class ShuttleSearchTest {
-    String test1;
-    String test2;
-    String input;
+    static String test1;
+    static String test2;
+    static String input;
 
-    @Before
-    public void initialize() {
+    @BeforeClass
+    public static void initialize() {
         test1 = "7,13,x,x,59,x,31,19";
 
         try {

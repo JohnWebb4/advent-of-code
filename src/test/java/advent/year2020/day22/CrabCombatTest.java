@@ -1,21 +1,21 @@
 /* Licensed under Apache-2.0 */
 package advent.year2020.day22;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 public class CrabCombatTest {
-    public String test1;
-    public String input;
+    public static String test1;
+    public static String input;
 
-    @Before
-    public void initialize() {
+    @BeforeClass
+    public static void initialize() {
         test1 = "Player 1:\n" +
                 "9\n" +
                 "2\n" +

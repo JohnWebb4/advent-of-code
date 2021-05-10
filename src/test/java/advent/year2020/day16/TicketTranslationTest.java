@@ -1,22 +1,22 @@
 /* Licensed under Apache-2.0 */
 package advent.year2020.day16;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 public class TicketTranslationTest {
     public static String test1;
     public static String test2;
     public static String input;
 
-    @Before
-    public void initialize() {
+    @BeforeClass
+    public static void initialize() {
         test1 = "class: 1-3 or 5-7\n" +
                 "row: 6-11 or 33-44\n" +
                 "seat: 13-40 or 45-50\n" +

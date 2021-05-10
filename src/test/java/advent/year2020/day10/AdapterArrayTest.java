@@ -1,23 +1,23 @@
 /* Licensed under Apache-2.0 */
 package advent.year2020.day10;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
 
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 public class AdapterArrayTest {
     public static int[] test1;
     public static int[] test2;
     public static int[] input;
 
-    @Before
-    public void initialize() {
+    @BeforeClass
+    public static void initialize() {
         test1 = new int[]{
                 16,
                 10,

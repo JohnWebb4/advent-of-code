@@ -1,17 +1,17 @@
 /* Licensed under Apache-2.0 */
 package advent.year2020.day23;
 
-import static org.junit.Assert.assertEquals;
-
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class CrabCupsTest {
-    public Long test1;
-    public Long input;
+import static org.junit.Assert.assertEquals;
 
-    @Before
-    public void initialize() {
+public class CrabCupsTest {
+    public static Long test1;
+    public static Long input;
+
+    @BeforeClass
+    public static void initialize() {
         test1 = 389125467l;
         input = 157623984l;
     }
