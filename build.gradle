@@ -22,7 +22,7 @@ repositories {
 }
 
 dependencies {
-    compile group: 'org.jboss.spec.javax.xml.bind', name: 'jboss-jaxb-api_2.2_spec', version: '1.0.0.Beta1'
+    implementation group: 'org.jboss.spec.javax.xml.bind', name: 'jboss-jaxb-api_2.2_spec', version: '1.0.0.Beta1'
     testImplementation group: 'junit', name: 'junit', version: '4.12'
 }
 
