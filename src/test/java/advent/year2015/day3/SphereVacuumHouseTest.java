@@ -1,13 +1,14 @@
+/* Licensed under Apache-2.0 */
 package advent.year2015.day3;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import static org.junit.Assert.*;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class SphereVacuumHouseTest {
     public static String input;

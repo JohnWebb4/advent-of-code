@@ -1,14 +1,14 @@
+/* Licensed under Apache-2.0 */
 package advent.year2015.day1;
 
 import static org.junit.Assert.assertEquals;
 
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class NotQuiteLispTest {
     public static String input;

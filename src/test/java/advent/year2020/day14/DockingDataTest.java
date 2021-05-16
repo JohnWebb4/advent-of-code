@@ -1,14 +1,14 @@
 /* Licensed under Apache-2.0 */
 package advent.year2020.day14;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class DockingDataTest {
     public static String input;

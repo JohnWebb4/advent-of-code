@@ -1,8 +1,9 @@
+/* Licensed under Apache-2.0 */
 package advent.year2015.day4;
 
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
+
+import org.junit.Test;
 
 public class IdealStockingStufferTest {
     @Test

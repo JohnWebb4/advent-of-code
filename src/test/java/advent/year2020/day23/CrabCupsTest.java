@@ -1,10 +1,10 @@
 /* Licensed under Apache-2.0 */
 package advent.year2020.day23;
 
+import static org.junit.Assert.assertEquals;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
 
 public class CrabCupsTest {
     public static Long test1;

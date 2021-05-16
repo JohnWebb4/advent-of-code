@@ -1,12 +1,14 @@
+/* Licensed under Apache-2.0 */
 package advent.year2015.day4;
 
 // In: String secret
 // Out: Number to produce hash with # zeros
 // Side effects: None
 
-import javax.xml.bind.DatatypeConverter;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+
+import javax.xml.bind.DatatypeConverter;
 
 // Brute force
 // Start at zero

@@ -1,3 +1,4 @@
+/* Licensed under Apache-2.0 */
 package advent.year2015.day1;
 
 public class NotQuiteLisp {

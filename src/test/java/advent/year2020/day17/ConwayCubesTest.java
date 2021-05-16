@@ -1,10 +1,10 @@
 /* Licensed under Apache-2.0 */
 package advent.year2020.day17;
 
+import static org.junit.Assert.assertEquals;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
 
 public class ConwayCubesTest {
     public static String test1;

@@ -1,13 +1,14 @@
+/* Licensed under Apache-2.0 */
 package advent.year2015.day7;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class SomeAssemblyTest {
     public static String test1 = "123 -> x\n" +
