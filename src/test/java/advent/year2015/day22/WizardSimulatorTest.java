@@ -3,7 +3,10 @@ package advent.year2015.day22;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import java.util.LinkedList;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
 
 public class WizardSimulatorTest {
     static WizardSimulator.Character testPlayer;
@@ -11,22 +14,68 @@ public class WizardSimulatorTest {
 
     @BeforeClass
     public static void initialize() {
-        testPlayer = new WizardSimulator.Character(10, 250);
-        testPlayer.addAction(
-                WizardSimulator.Action.getBuilder()
-                        .setName("Magic Missile")
-                        .setManaCost(53)
-                        .setDamage(4)
-                        .build());
+        List<WizardSimulator.Action> playerActions = new LinkedList();
+        playerActions.add(WizardSimulator.Action.getBuilder()
+                .setName("Magic Missile")
+                .setManaCost(53)
+                .setDamage(4)
+                .build());
+        playerActions.add(WizardSimulator.Action.getBuilder()
+                .setName("Drain")
+                .setManaCost(73)
+                .setDamage(2)
+                .setHeal(2)
+                .build()
+        );
+        playerActions.add(WizardSimulator.Action.getBuilder()
+                .setName("Shield")
+                .setManaCost(113)
+                .setEffect(WizardSimulator.Effect.getBuilder()
+                        .setName("Shield")
+                        .setNumTurnsAlive(6)
+                        .setArmor(7)
+                        .build())
+                .build()
+        );
+        playerActions.add(WizardSimulator.Action.getBuilder()
+                .setName("Poison")
+                .setManaCost(173)
+                .setEffect(WizardSimulator.Effect.getBuilder()
+                        .setName("Posion")
+                        .setNumTurnsAlive(6)
+                        .setDamage(3)
+                        .build())
+                .build());
 
-        testPlayer.addAction(
-                WizardSimulator.Action.getBuilder()
-                        .setName("Drain")
-                        .setManaCost(53)
-                        .setDamage(4)
-                        .build());
+        playerActions.add(WizardSimulator.Action.getBuilder()
+                .setName("Recharge")
+                .setManaCost(229)
+                .setEffect(WizardSimulator.Effect.getBuilder()
+                        .setName("Recharge")
+                        .setNumTurnsAlive(5)
+                        .setManaRecharge(101)
+                        .build())
+                .build());
 
-        testEnemy = new WizardSimulator.Character(13, 0);
+        WizardSimulator.Character.Builder testPlayerBuilder = WizardSimulator.Character.getBuilder();
+        testPlayerBuilder.setActions(playerActions);
+        testPlayerBuilder.setHitPoints(10);
+        testPlayerBuilder.setMana(250);
+
+        List<WizardSimulator.Action> enemyActions = new LinkedList<>();
+        enemyActions.add(WizardSimulator.Action.getBuilder()
+                .setName("Attack")
+                .setDamage(8)
+                .setManaCost(0)
+                .build()
+        );
+        WizardSimulator.Character.Builder testEnemyBuilder = WizardSimulator.Character.getBuilder();
+        testEnemyBuilder.setActions(enemyActions);
+        testEnemyBuilder.setHitPoints(13);
+        testEnemyBuilder.setMana(0);
+
+        testEnemy = testEnemyBuilder.build();
+        testPlayer = testPlayerBuilder.build();
     }
 
     @Test

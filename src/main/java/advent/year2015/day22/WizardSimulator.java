@@ -31,12 +31,17 @@ public class WizardSimulator {
                 return this;
             }
 
-            public Builder addActions(List<Action> actions) {
+            public Builder setActions(List<Action> actions) {
                 this.actions = actions;
                 return this;
             }
 
-            public Builder addEffectInstances(List<Effect.EffectInstance> effectInstances) {
+            public Builder addAction(Action action) {
+                this.actions.add(action);
+                return this;
+            }
+
+            public Builder setEffectInstances(List<Effect.EffectInstance> effectInstances) {
                 this.effectInstances = effectInstances;
                 return this;
             }
@@ -52,10 +57,6 @@ public class WizardSimulator {
                         actions.toArray(Action[]::new),
                         effectInstances.toArray(Effect.EffectInstance[]::new));
             }
-
-            public static Builder getBuilder() {
-                return new Builder();
-            }
         }
 
         public Character(int hitPoints, int mana, Action[] actions, Effect.EffectInstance[] effectInstances) {
@@ -63,6 +64,10 @@ public class WizardSimulator {
             this.mana = mana;
             this.actions = actions;
             this.effectInstances = effectInstances;
+        }
+
+        public static Builder getBuilder() {
+            return new Builder();
         }
     }
 
@@ -125,14 +130,16 @@ public class WizardSimulator {
 
     public static class Effect {
         final String name;
-        final int heal;
+        final int armor;
         final int damage;
+        final int manaRecharge;
         final int numTurnsAlive;
 
         public static class Builder {
             String name;
-            int heal;
+            int armor;
             int damage;
+            int manaRecharge;
             int numTurnsAlive;
 
             public Builder setName(String name) {
@@ -140,15 +147,29 @@ public class WizardSimulator {
                 return this;
             }
 
-            public Builder setHeal(int heal) {
-                this.heal = heal;
+            public Builder setArmor(int armor) {
+                this.armor = armor;
+                return this;
+            }
+
+            public Builder setDamage(int damage) {
+                this.damage = damage;
+                return this;
+            }
+
+            public Builder setManaRecharge(int manaRecharge) {
+                this.manaRecharge = manaRecharge;
+                return this;
+            }
+
+            public Builder setNumTurnsAlive(int numTurnsAlive) {
+                this.numTurnsAlive = numTurnsAlive;
                 return this;
             }
 
             public Effect build() {
-                return new Effect(this.name, this.heal, this.damage, this.numTurnsAlive);
+                return new Effect(this.name, this.armor, this.damage, this.manaRecharge, this.numTurnsAlive);
             }
-
         }
 
         public static class EffectInstance {
@@ -169,10 +190,11 @@ public class WizardSimulator {
             }
         }
 
-        public Effect(String name, int heal, int damage, int numTurnsAlive) {
+        public Effect(String name, int armor, int damage, int manaRecharge, int numTurnsAlive) {
             this.name = name;
-            this.heal = heal;
+            this.armor = armor;
             this.damage = damage;
+            this.manaRecharge = manaRecharge;
             this.numTurnsAlive = numTurnsAlive;
         }
 
