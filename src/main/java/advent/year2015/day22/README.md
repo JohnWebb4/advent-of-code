@@ -32,90 +32,90 @@ For example, suppose the player has 10 hit points and 250 mana, and that the bos
 -- Player turn --
 - Player has 10 hit points, 0 armor, 250 mana
 - Boss has 13 hit points
-  Player casts Poison.
+Player casts Poison.
 
 -- Boss turn --
 - Player has 10 hit points, 0 armor, 77 mana
 - Boss has 13 hit points
-  Poison deals 3 damage; its timer is now 5.
-  Boss attacks for 8 damage.
+Poison deals 3 damage; its timer is now 5.
+Boss attacks for 8 damage.
 
 -- Player turn --
 - Player has 2 hit points, 0 armor, 77 mana
 - Boss has 10 hit points
-  Poison deals 3 damage; its timer is now 4.
-  Player casts Magic Missile, dealing 4 damage.
+Poison deals 3 damage; its timer is now 4.
+Player casts Magic Missile, dealing 4 damage.
 
 -- Boss turn --
 - Player has 2 hit points, 0 armor, 24 mana
 - Boss has 3 hit points
-  Poison deals 3 damage. This kills the boss, and the player wins.
-  Now, suppose the same initial conditions, except that the boss has 14 hit points instead:
+Poison deals 3 damage. This kills the boss, and the player wins.
+Now, suppose the same initial conditions, except that the boss has 14 hit points instead:
 
 -- Player turn --
 - Player has 10 hit points, 0 armor, 250 mana
 - Boss has 14 hit points
-  Player casts Recharge.
+Player casts Recharge.
 
 -- Boss turn --
 - Player has 10 hit points, 0 armor, 21 mana
 - Boss has 14 hit points
-  Recharge provides 101 mana; its timer is now 4.
-  Boss attacks for 8 damage!
+Recharge provides 101 mana; its timer is now 4.
+Boss attacks for 8 damage!
 
 -- Player turn --
 - Player has 2 hit points, 0 armor, 122 mana
 - Boss has 14 hit points
-  Recharge provides 101 mana; its timer is now 3.
-  Player casts Shield, increasing armor by 7.
+Recharge provides 101 mana; its timer is now 3.
+Player casts Shield, increasing armor by 7.
 
 -- Boss turn --
 - Player has 2 hit points, 7 armor, 110 mana
 - Boss has 14 hit points
-  Shield's timer is now 5.
-  Recharge provides 101 mana; its timer is now 2.
-  Boss attacks for 8 - 7 = 1 damage!
+Shield's timer is now 5.
+Recharge provides 101 mana; its timer is now 2.
+Boss attacks for 8 - 7 = 1 damage!
 
 -- Player turn --
 - Player has 1 hit point, 7 armor, 211 mana
 - Boss has 14 hit points
-  Shield's timer is now 4.
-  Recharge provides 101 mana; its timer is now 1.
-  Player casts Drain, dealing 2 damage, and healing 2 hit points.
+Shield's timer is now 4.
+Recharge provides 101 mana; its timer is now 1.
+Player casts Drain, dealing 2 damage, and healing 2 hit points.
 
 -- Boss turn --
 - Player has 3 hit points, 7 armor, 239 mana
 - Boss has 12 hit points
-  Shield's timer is now 3.
-  Recharge provides 101 mana; its timer is now 0.
-  Recharge wears off.
-  Boss attacks for 8 - 7 = 1 damage!
+Shield's timer is now 3.
+Recharge provides 101 mana; its timer is now 0.
+Recharge wears off.
+Boss attacks for 8 - 7 = 1 damage!
 
 -- Player turn --
 - Player has 2 hit points, 7 armor, 340 mana
 - Boss has 12 hit points
-  Shield's timer is now 2.
-  Player casts Poison.
+Shield's timer is now 2.
+Player casts Poison.
 
 -- Boss turn --
 - Player has 2 hit points, 7 armor, 167 mana
 - Boss has 12 hit points
-  Shield's timer is now 1.
-  Poison deals 3 damage; its timer is now 5.
-  Boss attacks for 8 - 7 = 1 damage!
+Shield's timer is now 1.
+Poison deals 3 damage; its timer is now 5.
+Boss attacks for 8 - 7 = 1 damage!
 
 -- Player turn --
 - Player has 1 hit point, 7 armor, 167 mana
 - Boss has 9 hit points
-  Shield's timer is now 0.
-  Shield wears off, decreasing armor by 7.
-  Poison deals 3 damage; its timer is now 4.
-  Player casts Magic Missile, dealing 4 damage.
+Shield's timer is now 0.
+Shield wears off, decreasing armor by 7.
+Poison deals 3 damage; its timer is now 4.
+Player casts Magic Missile, dealing 4 damage.
 
 -- Boss turn --
 - Player has 1 hit point, 0 armor, 114 mana
 - Boss has 2 hit points
-  Poison deals 3 damage. This kills the boss, and the player wins.
+Poison deals 3 damage. This kills the boss, and the player wins.
 ````
 
 You start with 50 hit points and 500 mana points. The boss's actual stats are in your puzzle input. What is the least

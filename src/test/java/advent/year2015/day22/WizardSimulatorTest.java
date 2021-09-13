@@ -1,12 +1,13 @@
+/* Licensed under Apache-2.0 */
 package advent.year2015.day22;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.util.LinkedList;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class WizardSimulatorTest {
     static WizardSimulator.Character testPlayer;
