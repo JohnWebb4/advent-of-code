@@ -10,12 +10,14 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 
 public class WizardSimulatorTest {
-    static WizardSimulator.Character testPlayer;
-    static WizardSimulator.Character testEnemy;
+    static List<WizardSimulator.Action> playerActions;
+    static List<WizardSimulator.Action> enemyActions;
 
     @BeforeClass
     public static void initialize() {
-        List<WizardSimulator.Action> playerActions = new LinkedList();
+        playerActions = new LinkedList<>();
+        enemyActions = new LinkedList<>();
+
         playerActions.add(WizardSimulator.Action.getBuilder()
                 .setName("Magic Missile")
                 .setManaCost(53)
@@ -58,31 +60,55 @@ public class WizardSimulatorTest {
                         .build())
                 .build());
 
-        WizardSimulator.Character.Builder testPlayerBuilder = WizardSimulator.Character.getBuilder();
-        testPlayerBuilder.setName("Player");
-        testPlayerBuilder.setActions(playerActions.toArray(WizardSimulator.Action[]::new));
-        testPlayerBuilder.setHitPoints(10);
-        testPlayerBuilder.setMana(250);
-
-        List<WizardSimulator.Action> enemyActions = new LinkedList<>();
         enemyActions.add(WizardSimulator.Action.getBuilder()
                 .setName("Attack")
                 .setDamage(8)
                 .setManaCost(0)
                 .build()
         );
-        WizardSimulator.Character.Builder testEnemyBuilder = WizardSimulator.Character.getBuilder();
-        testEnemyBuilder.setName("Boss");
-        testEnemyBuilder.setActions(enemyActions.toArray(WizardSimulator.Action[]::new));
-        testEnemyBuilder.setHitPoints(13);
-        testEnemyBuilder.setMana(0);
-
-        testEnemy = testEnemyBuilder.build();
-        testPlayer = testPlayerBuilder.build();
     }
 
     @Test
     public void getMinManaToWin() {
-        assertEquals(226, WizardSimulator.getMinManaToWin(testPlayer, testEnemy));
+        assertEquals(226, WizardSimulator.getMinManaToWin(WizardSimulator.Character.getBuilder()
+                        .setName("Player")
+                        .setActions(playerActions.toArray(WizardSimulator.Action[]::new))
+                        .setHitPoints(10)
+                        .setMana(250)
+                        .build(),
+                WizardSimulator.Character.getBuilder()
+                        .setName("Boss")
+                        .setActions(enemyActions.toArray(WizardSimulator.Action[]::new))
+                        .setHitPoints(13)
+                        .setMana(0)
+                        .build()));
+
+        assertEquals(641, WizardSimulator.getMinManaToWin(WizardSimulator.Character.getBuilder()
+                        .setName("Player")
+                        .setActions(playerActions.toArray(WizardSimulator.Action[]::new))
+                        .setHitPoints(10)
+                        .setMana(250)
+                        .build(),
+                WizardSimulator.Character.getBuilder()
+                        .setName("Boss")
+                        .setActions(enemyActions.toArray(WizardSimulator.Action[]::new))
+                        .setHitPoints(14)
+                        .setMana(0)
+                        .build()));
+
+        // Greater than 854
+        assertEquals(0, WizardSimulator.getMinManaToWin(WizardSimulator.Character.getBuilder()
+                        .setName("Player")
+                        .setActions(playerActions.toArray(WizardSimulator.Action[]::new))
+                        .setHitPoints(50)
+                        .setMana(500)
+                        .build(),
+                WizardSimulator.Character.getBuilder()
+                        .setName("Boss")
+                        .setActions(enemyActions.toArray(WizardSimulator.Action[]::new))
+                        .setHitPoints(55)
+                        .setMana(0)
+                        .build()));
+
     }
 }

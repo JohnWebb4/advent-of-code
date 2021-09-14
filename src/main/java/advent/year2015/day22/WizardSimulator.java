@@ -11,11 +11,14 @@ public class WizardSimulator {
         public final Character enemy;
         public final Character player;
         public final int playerManaSpent;
+        public final String path;
 
         public static class Builder {
+            String path = "";
             Character enemy;
             Character player;
             int playerManaSpent;
+
 
             public Builder setPlayer(Character player) {
                 this.player = player;
@@ -32,15 +35,21 @@ public class WizardSimulator {
                 return this;
             }
 
+            public Builder setPath(String path) {
+                this.path = path;
+                return this;
+            }
+
             public FightInstance build() {
-                return new FightInstance(this.player, this.enemy, this.playerManaSpent);
+                return new FightInstance(this.player, this.enemy, this.playerManaSpent, path);
             }
         }
 
-        public FightInstance(Character player, Character enemy, int playerManaSpent) {
+        public FightInstance(Character player, Character enemy, int playerManaSpent, String path) {
             this.player = player;
             this.playerManaSpent = playerManaSpent;
             this.enemy = enemy;
+            this.path = path;
         }
 
         public static Builder getBuilder() {
@@ -379,27 +388,30 @@ public class WizardSimulator {
                 continue;
             }
 
-            for (FightInstance playerOption : getFightOptions(fightInstance.player, fightInstance.enemy, fightInstance.playerManaSpent)) {
+            for (FightInstance playerOption : getFightOptions(fightInstance)) {
                 int playerManaSpent = playerOption.playerManaSpent;
 
                 if (playerOption.player.isAlive()) {
                     if (playerOption.enemy.isAlive()) {
-                        for (FightInstance enemyOption : getEnemyOptions(playerOption.enemy, playerOption.player)) {
+                        for (FightInstance enemyOption : getEnemyOptions(playerOption)) {
                             if (enemyOption.player.isAlive()) {
                                 if (enemyOption.enemy.isAlive()) {
                                     instancesToCheck.add(FightInstance.getBuilder()
                                             .setPlayerManaSpent(playerManaSpent)
                                             .setPlayer(enemyOption.player)
                                             .setEnemy(enemyOption.enemy)
+                                            .setPath(enemyOption.path)
                                             .build());
                                 } else if (playerManaSpent < minPlayerManaSpent) {
                                     // Enemy killed by effect on enemy turn
+                                    System.out.println(String.format("Win enemy turn:\n%s", enemyOption.path));
                                     minPlayerManaSpent = playerManaSpent;
                                 }
                             }
                         }
                     } else if (playerOption.playerManaSpent < minPlayerManaSpent) {
                         // Enemey killed on player turn
+                        System.out.println(String.format("Win player turn:\n%s", playerOption.path));
                         minPlayerManaSpent = playerOption.playerManaSpent;
                     }
                 }
@@ -409,17 +421,23 @@ public class WizardSimulator {
         return minPlayerManaSpent;
     }
 
-    public static FightInstance[] getEnemyOptions(Character enemy, Character player) {
+    public static FightInstance[] getEnemyOptions(FightInstance fightInstance) {
         // Find a better way to handle getting the enemies options
         // Reverse character and target for enemy and players
-        return Arrays.stream(getFightOptions(enemy, player, 0)).map((fi) -> FightInstance.getBuilder()
+        return Arrays.stream(getFightOptions(FightInstance.getBuilder()
+                .setPlayer(fightInstance.enemy)
+                .setEnemy(fightInstance.player)
+                .setPlayerManaSpent(0)
+                .setPath(fightInstance.path)
+                .build())).map((fi) -> FightInstance.getBuilder()
                 .setPlayer(fi.enemy)
                 .setEnemy(fi.player)
+                .setPath(fi.path)
                 .build()).toArray(FightInstance[]::new);
     }
 
-    public static FightInstance[] getFightOptions(Character character, Character target, int characterManaSpent) {
-        Character[] charactersAfterEffects = applyAllEffects(character, target);
+    public static FightInstance[] getFightOptions(FightInstance fightInstance) {
+        Character[] charactersAfterEffects = applyAllEffects(fightInstance.player, fightInstance.enemy);
         Character characterAfterEffects = charactersAfterEffects[0];
         Character targetAfterEffects = charactersAfterEffects[1];
 
@@ -428,23 +446,25 @@ public class WizardSimulator {
         if (characterAfterEffects.isAlive()) {
             for (Action action : characterAfterEffects.actions) {
                 if (characterAfterEffects.mana >= action.manaCost && !Arrays.stream(characterAfterEffects.effectInstances).anyMatch((ei) -> ei.name.equals(action.name))) {
-                    System.out.println(String.format("-- %s turn -- ", characterAfterEffects.name));
-                    System.out.println(String.format("- %s has %s hit points, %s armor %s mana",
-                            characterAfterEffects.name,
-                            characterAfterEffects.hitPoints,
-                            characterAfterEffects.armor,
-                            characterAfterEffects.mana
-                    ));
-                    System.out.println(String.format("- %s has %s hit points", targetAfterEffects.name, targetAfterEffects.hitPoints));
+//                    System.out.println(String.format("));
+//                    System.out.println(String.format("- %s has %s hit points, %s armor %s mana",
+//                            characterAfterEffects.name,
+//                            characterAfterEffects.hitPoints,
+//                            characterAfterEffects.armor,
+//                            characterAfterEffects.mana
+//                    ));
+//                    System.out.println(String.format("- %s has %s hit points", targetAfterEffects.name, targetAfterEffects.hitPoints));
 
-                    int totalManaSpentAfterAction = characterManaSpent + action.manaCost;
+                    int totalManaSpentAfterAction = fightInstance.playerManaSpent + action.manaCost;
 
                     Character.Builder characterBuilder = characterAfterEffects.getBuilderFromCharacter();
                     characterBuilder.setMana(characterBuilder.mana - action.manaCost);
                     characterBuilder.setHitPoints(characterBuilder.hitPoints + action.heal);
 
                     Character.Builder targetBuilder = targetAfterEffects.getBuilderFromCharacter();
-                    targetBuilder.setHitPoints(targetBuilder.hitPoints - Math.max(1, action.damage - targetBuilder.armor));
+                    if (action.damage > 0) {
+                        targetBuilder.setHitPoints(targetBuilder.hitPoints - Math.max(1, action.damage - targetBuilder.armor));
+                    }
 
                     if (action.effect != null) {
                         List<EffectInstance> characterEffectInstances = new LinkedList<>();
@@ -458,22 +478,33 @@ public class WizardSimulator {
                         characterBuilder.setEffectInstances(characterEffectInstances.toArray(EffectInstance[]::new));
                     }
 
-                    System.out.println(String.format("%s casts %s", characterBuilder.name, action.name));
+                    String path = fightInstance.path;
+                    path += String.format("-- %s turn --\n", characterAfterEffects.name);
+                    path += String.format("- %s has %s hit points, %s armor %s mana\n",
+                            characterAfterEffects.name,
+                            characterAfterEffects.hitPoints,
+                            characterAfterEffects.armor,
+                            characterAfterEffects.mana
+                    );
+                    path += String.format("- %s has %s hit points\n", targetAfterEffects.name, targetAfterEffects.hitPoints);
+                    path += String.format("%s casts %s\n", characterBuilder.name, action.name);
+                    path += "\n";
 
                     options.add(FightInstance.getBuilder()
                             .setPlayerManaSpent(totalManaSpentAfterAction)
                             .setPlayer(characterBuilder.build())
                             .setEnemy(targetBuilder.build())
+                            .setPath(path)
                             .build());
-
-                    System.out.println("");
                 }
             }
         } else {
             options.add(FightInstance.getBuilder()
                     .setPlayer(characterAfterEffects)
                     .setEnemy(targetAfterEffects)
-                    .setPlayerManaSpent(characterManaSpent).build());
+                    .setPlayerManaSpent(fightInstance.playerManaSpent)
+                    .setPath(fightInstance.path)
+                    .build());
         }
 
 
@@ -507,7 +538,9 @@ public class WizardSimulator {
                 if (effectInstance.isAlive()) {
                     characterBuilder.setArmor(characterBuilder.armor + effectInstance.armor);
                     characterBuilder.setMana(characterBuilder.mana + effectInstance.manaRecharge);
-                    targetBuilder.setHitPoints(targetBuilder.hitPoints - Math.max(1, effectInstance.damage - targetBuilder.armor));
+                    if (effectInstance.damage > 0) {
+                        targetBuilder.setHitPoints(targetBuilder.hitPoints - Math.max(1, effectInstance.damage - targetBuilder.armor));
+                    }
 
                     EffectInstance nextInstance = effectInstance.getBuilderFromInstance()
                             .setTurnsAlive(effectInstance.turnsAlive + 1)
