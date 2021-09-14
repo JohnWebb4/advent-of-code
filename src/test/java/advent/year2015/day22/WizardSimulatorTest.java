@@ -1,13 +1,13 @@
 /* Licensed under Apache-2.0 */
 package advent.year2015.day22;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 public class WizardSimulatorTest {
     static WizardSimulator.Character testPlayer;
@@ -33,7 +33,7 @@ public class WizardSimulatorTest {
                 .setManaCost(113)
                 .setEffect(WizardSimulator.Effect.getBuilder()
                         .setName("Shield")
-                        .setNumTurnsAlive(6)
+                        .setEffectLength(6)
                         .setArmor(7)
                         .build())
                 .build()
@@ -43,7 +43,7 @@ public class WizardSimulatorTest {
                 .setManaCost(173)
                 .setEffect(WizardSimulator.Effect.getBuilder()
                         .setName("Posion")
-                        .setNumTurnsAlive(6)
+                        .setEffectLength(6)
                         .setDamage(3)
                         .build())
                 .build());
@@ -53,13 +53,14 @@ public class WizardSimulatorTest {
                 .setManaCost(229)
                 .setEffect(WizardSimulator.Effect.getBuilder()
                         .setName("Recharge")
-                        .setNumTurnsAlive(5)
+                        .setEffectLength(5)
                         .setManaRecharge(101)
                         .build())
                 .build());
 
         WizardSimulator.Character.Builder testPlayerBuilder = WizardSimulator.Character.getBuilder();
-        testPlayerBuilder.setActions(playerActions);
+        testPlayerBuilder.setName("Player");
+        testPlayerBuilder.setActions(playerActions.toArray(WizardSimulator.Action[]::new));
         testPlayerBuilder.setHitPoints(10);
         testPlayerBuilder.setMana(250);
 
@@ -71,7 +72,8 @@ public class WizardSimulatorTest {
                 .build()
         );
         WizardSimulator.Character.Builder testEnemyBuilder = WizardSimulator.Character.getBuilder();
-        testEnemyBuilder.setActions(enemyActions);
+        testEnemyBuilder.setName("Boss");
+        testEnemyBuilder.setActions(enemyActions.toArray(WizardSimulator.Action[]::new));
         testEnemyBuilder.setHitPoints(13);
         testEnemyBuilder.setMana(0);
 
