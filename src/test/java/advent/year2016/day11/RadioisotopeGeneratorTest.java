@@ -2,6 +2,7 @@ package advent.year2016.day11;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
+
 import static org.junit.Assert.assertEquals;
 
 public class RadioisotopeGeneratorTest {
@@ -24,6 +25,6 @@ public class RadioisotopeGeneratorTest {
     @Test
     public void getMinStepsToMoveChips() {
         assertEquals(11, RadioisotopeGenerator.getMinStepsToMoveChips(test1, 2));
-//        assertEquals(0, RadioisotopeGenerator.getMinStepsToMoveChips(input, 2));
+        assertEquals(0, RadioisotopeGenerator.getMinStepsToMoveChips(input, 2));
     }
 }
