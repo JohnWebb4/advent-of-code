@@ -30,7 +30,7 @@ public class BalanceBotsTest {
 
     @Test
     public void getBotWithMicrochips() {
-//        assertEquals(2, BalanceBots.getBotWithMicrochips(test1, new int[]{5, 2}));
+        assertEquals(2, BalanceBots.getBotWithMicrochips(test1, new int[]{5, 2}));
         // 187: High
         assertEquals(0, BalanceBots.getBotWithMicrochips(input, new int[]{61, 17}));
     }

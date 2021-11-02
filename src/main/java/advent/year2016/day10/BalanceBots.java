@@ -10,15 +10,37 @@ public class BalanceBots {
     public static final Pattern VALUE_INSTRUCTION = Pattern.compile("value (\\d+) goes to bot (\\d+)");
     public static final int MAX_CHIPS_HELD = 2;
 
-    public static class Bot {
+    public interface IHoldsChips {
+        void addChip(int value);
+
+        int getChipCount();
+    }
+
+    public static class Output implements IHoldsChips {
+        private final List<Integer> chips;
+
+        public Output() {
+            this.chips = new LinkedList<>();
+        }
+
+        public void addChip(int value) {
+            this.chips.add(value);
+        }
+
+        public int getChipCount() {
+            return this.chips.size();
+        }
+    }
+
+    public static class Bot implements IHoldsChips {
         public final int botNumber;
         public final int maxChips;
-        private List<Integer> lowList;
-        private List<Integer> highList;
-        private List<Integer> chips;
-        private Set<Integer> chipsHasHandled;
+        private IHoldsChips lowList;
+        private IHoldsChips highList;
+        private final List<Integer> chips;
+        private final Set<Integer> chipsHasHandled;
 
-        public Bot(int botNumber, int maxChips, List<Integer> lowList, List<Integer> highList) {
+        public Bot(int botNumber, int maxChips, IHoldsChips lowList, IHoldsChips highList) {
             this.botNumber = botNumber;
             this.maxChips = maxChips;
             this.lowList = lowList;
@@ -32,6 +54,10 @@ public class BalanceBots {
             this.chipsHasHandled.add(value);
         }
 
+        public int getChipCount() {
+            return this.chips.size();
+        }
+
         public boolean hasHeldAll(List<Integer> chips) {
             return this.chipsHasHandled.containsAll(chips);
         }
@@ -41,7 +67,7 @@ public class BalanceBots {
         String[] instructions = instructionString.split("\n");
         List<Integer> chipList = Arrays.stream(chips).boxed().collect(Collectors.toList());
         Map<Integer, Bot> botMap = new HashMap<>();
-        Map<Integer, List<Integer>> outputMap = new HashMap<>();
+        Map<Integer, Output> outputMap = new HashMap<>();
 
         for (String instruction : instructions) {
             if (BOT_INSTRUCTION.matcher(instruction).matches()) {
@@ -53,22 +79,22 @@ public class BalanceBots {
                 int lowValue = Integer.parseInt(botMatcher.group(3));
                 String highType = botMatcher.group(4);
                 int highValue = Integer.parseInt(botMatcher.group(5));
-                List<Integer> lowList;
-                List<Integer> highList;
+                IHoldsChips lowList;
+                IHoldsChips highList;
 
                 if (lowType.equals("bot")) {
                     botMap.putIfAbsent(lowValue, new Bot(lowValue, MAX_CHIPS_HELD, null, null));
-                    lowList = botMap.get(lowValue).chips;
+                    lowList = botMap.get(lowValue);
                 } else {
-                    outputMap.putIfAbsent(lowValue, new LinkedList<>());
+                    outputMap.putIfAbsent(lowValue, new Output());
                     lowList = outputMap.get(lowValue);
                 }
 
                 if (highType.equals("bot")) {
                     botMap.putIfAbsent(highValue, new Bot(highValue, MAX_CHIPS_HELD, null, null));
-                    highList = botMap.get(highValue).chips;
+                    highList = botMap.get(highValue);
                 } else {
-                    outputMap.putIfAbsent(highValue, new LinkedList<>());
+                    outputMap.putIfAbsent(highValue, new Output());
                     highList = outputMap.get(highValue);
                 }
 
@@ -97,28 +123,56 @@ public class BalanceBots {
             }
         }
 
-        for (long i = 0; i < 100000L; i++) {
-            for (Bot bot : botMap.values()) {
-                if (bot.hasHeldAll(chipList)) {
-                    System.out.println(String.format("YO %s", bot.botNumber));
-//                    return bot.botNumber;
-                }
+        Queue<Bot> nextBotToCheck = new LinkedList<>();
 
-                if (bot.chips.size() >= bot.maxChips) {
-                    if (bot.chips.contains(17)) {
-                        System.out.println(String.format("Bot %s has %s", bot.botNumber, String.join(",", bot.chips.stream().map(String::valueOf).toArray(String[]::new))));
-                    }
+        for (Bot bot : botMap.values()) {
+            if (bot.chips.size() >= bot.maxChips) {
+                nextBotToCheck.add(bot);
+            }
+        }
 
-                    for (int chipIndex = 0; chipIndex < bot.chips.size(); chipIndex++) {
-                        int value = bot.chips.remove(0);
+        while (nextBotToCheck.size() > 0) {
+            Bot bot = nextBotToCheck.poll();
 
-                        if (value > bot.botNumber) {
-                            bot.highList.add(value);
-                        } else {
-                            bot.lowList.add(value);
+            if (bot.hasHeldAll(chipList)) {
+                return bot.botNumber;
+            }
+
+            while (bot.chips.size() >= bot.maxChips) {
+                int value0 = bot.chips.remove(0);
+                int value1 = bot.chips.remove(0);
+
+                int[] values = new int[]{value0, value1};
+
+                for (int value : values) {
+                    if (value > bot.botNumber) {
+                        bot.highList.addChip(value);
+
+                        if (bot.highList instanceof Bot) {
+                            Bot highBot = (Bot) bot.highList;
+
+                            if (highBot.hasHeldAll(chipList)) {
+                                return highBot.botNumber;
+                            }
+
+                            if (highBot.getChipCount() >= highBot.maxChips) {
+                                nextBotToCheck.add((Bot) bot.highList);
+                            }
                         }
+                    } else {
+                        bot.lowList.addChip(value);
 
-                        bot.chipsHasHandled.add(value);
+                        if (bot.lowList instanceof Bot) {
+                            Bot lowBot = (Bot) bot.lowList;
+
+                            if (lowBot.hasHeldAll(chipList)) {
+                                return lowBot.botNumber;
+                            }
+
+                            if (lowBot.getChipCount() >= lowBot.maxChips) {
+                                nextBotToCheck.add((Bot) bot.lowList);
+                            }
+                        }
                     }
                 }
             }
@@ -126,4 +180,5 @@ public class BalanceBots {
 
         return -1;
     }
+
 }
