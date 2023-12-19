@@ -2,6 +2,7 @@ use almanac::read_almanac;
 use utils::UnexepectedError;
 
 mod almanac;
+mod range;
 mod utils;
 
 pub fn get_lowest_location_with_initial_seed(input: &str) -> Result<i64, UnexepectedError> {
@@ -10,23 +11,18 @@ pub fn get_lowest_location_with_initial_seed(input: &str) -> Result<i64, Unexepe
     let mut min_location = i64::MAX;
 
     for seed in almanac.seeds.iter() {
-        println!("Looking at {seed}");
-
-        let soil = almanac.seed_to_soil_map.get(seed).unwrap_or(seed);
-        let fertilizer = almanac.soil_to_fertilizer_map.get(soil).unwrap_or(soil);
+        let soil = almanac.get_seed_to_soil(*seed).unwrap_or(*seed);
+        let fertilizer = almanac.get_soil_to_fertilizer(soil).unwrap_or(soil);
         let water = almanac
-            .fertilizer_to_water_map
-            .get(fertilizer)
+            .get_fertilizer_to_water(fertilizer)
             .unwrap_or(fertilizer);
-        let light = almanac.water_to_light_map.get(water).unwrap_or(water);
-        let temperature = almanac.light_to_temperature_map.get(light).unwrap_or(light);
+        let light = almanac.get_water_to_light(water).unwrap_or(water);
+        let temperature = almanac.get_light_to_temperature(light).unwrap_or(light);
         let humidity = almanac
-            .temperature_to_humidity_map
-            .get(temperature)
+            .get_temperature_to_humidity(temperature)
             .unwrap_or(temperature);
-        let location = *almanac
-            .humidity_to_location_map
-            .get(humidity)
+        let location = almanac
+            .get_humidity_to_location(humidity)
             .unwrap_or(humidity);
 
         if location < min_location {
@@ -89,7 +85,7 @@ humidity-to-location map:
             fs::read_to_string("./input.txt").expect("Year 2023 Day 5. Failed to read input");
 
         assert_eq!(
-            0,
+            199602917,
             get_lowest_location_with_initial_seed(input.as_str())
                 .expect("Year 2023 Day 5 Part One Input")
         );
