@@ -14,33 +14,116 @@ pub struct Almanac {
 }
 
 impl Almanac {
-    pub fn get_seed_to_soil(&self, seed: i64) -> Option<i64> {
+    pub fn get_seed_to_location(&self, seed: i64) -> i64 {
+        let soil = self.get_seed_to_soil(seed).unwrap_or(seed);
+        let fertilizer = self.get_soil_to_fertilizer(soil).unwrap_or(soil);
+        let water = self
+            .get_fertilizer_to_water(fertilizer)
+            .unwrap_or(fertilizer);
+        let light = self.get_water_to_light(water).unwrap_or(water);
+        let temperature = self.get_light_to_temperature(light).unwrap_or(light);
+        let humidity = self
+            .get_temperature_to_humidity(temperature)
+            .unwrap_or(temperature);
+
+        self.get_humidity_to_location(humidity).unwrap_or(humidity)
+    }
+
+    pub fn get_seed_range_to_location(&self, seed_ranges: &[Range]) -> Vec<Range> {
+        println!("Seeds {seed_ranges:?}");
+
+        seed_ranges
+            .iter()
+            .flat_map(|seed_range| merge_ranges(seed_range, &self.seed_to_soil_ranges))
+            .flat_map(|soil_range| merge_ranges(&soil_range, &self.soil_to_fertilizer_ranges))
+            .flat_map(|fertilizer_range| {
+                merge_ranges(&fertilizer_range, &self.fertilizer_to_water_ranges)
+            })
+            .flat_map(|water_range| merge_ranges(&water_range, &self.water_to_light_ranges))
+            .flat_map(|light_range| merge_ranges(&light_range, &self.light_to_temperature_ranges))
+            .flat_map(|temperature_range| {
+                merge_ranges(&temperature_range, &self.temperature_to_humidity_ranges)
+            })
+            .flat_map(|humidity_range| {
+                merge_ranges(&humidity_range, &self.humidity_to_location_ranges)
+            })
+            .collect::<Vec<Range>>()
+    }
+
+    fn get_seed_to_soil(&self, seed: i64) -> Option<i64> {
         get_ranges_value(&self.seed_to_soil_ranges, seed)
     }
 
-    pub fn get_soil_to_fertilizer(&self, soil: i64) -> Option<i64> {
+    fn get_soil_to_fertilizer(&self, soil: i64) -> Option<i64> {
         get_ranges_value(&self.soil_to_fertilizer_ranges, soil)
     }
 
-    pub fn get_fertilizer_to_water(&self, fertilizer: i64) -> Option<i64> {
+    fn get_fertilizer_to_water(&self, fertilizer: i64) -> Option<i64> {
         get_ranges_value(&self.fertilizer_to_water_ranges, fertilizer)
     }
 
-    pub fn get_water_to_light(&self, water: i64) -> Option<i64> {
+    fn get_water_to_light(&self, water: i64) -> Option<i64> {
         get_ranges_value(&self.water_to_light_ranges, water)
     }
 
-    pub fn get_light_to_temperature(&self, light: i64) -> Option<i64> {
+    fn get_light_to_temperature(&self, light: i64) -> Option<i64> {
         get_ranges_value(&self.light_to_temperature_ranges, light)
     }
 
-    pub fn get_temperature_to_humidity(&self, temperature: i64) -> Option<i64> {
+    fn get_temperature_to_humidity(&self, temperature: i64) -> Option<i64> {
         get_ranges_value(&self.temperature_to_humidity_ranges, temperature)
     }
 
-    pub fn get_humidity_to_location(&self, humidity: i64) -> Option<i64> {
+    fn get_humidity_to_location(&self, humidity: i64) -> Option<i64> {
         get_ranges_value(&self.humidity_to_location_ranges, humidity)
     }
+}
+
+fn merge_ranges(source_range: &Range, dest_ranges: &Vec<Range>) -> Vec<Range> {
+    let mut ranges: Vec<Range> = vec![];
+
+    for dest_range in dest_ranges {
+        if let Some(intersect_range) = source_range.intersect(dest_range, true) {
+            ranges.push(intersect_range)
+        }
+    }
+
+    ranges.sort_by(|a, b| a.source_start.partial_cmp(&b.source_start).unwrap());
+
+    if ranges.is_empty() {
+        ranges.push(Range {
+            source_start: source_range.source_start,
+            dest_start: source_range.dest_start,
+            length: source_range.length,
+        });
+    } else {
+        // Check for head and tail ranges
+        let intersection_min_source_start = ranges[0].source_start;
+
+        if source_range.source_start < intersection_min_source_start {
+            ranges.push(Range {
+                source_start: source_range.source_start,
+                dest_start: source_range.source_start,
+                length: intersection_min_source_start - source_range.source_start,
+            })
+        }
+
+        let source_range_source_end = source_range.source_start + source_range.length;
+        let last_intersection = &ranges[ranges.len() - 1];
+        let intersection_max_source_end = last_intersection.source_start + last_intersection.length;
+
+        if source_range_source_end > intersection_max_source_end {
+            let nonoverlapping_end_length = source_range_source_end - intersection_max_source_end;
+
+            ranges.push(Range {
+                source_start: source_range_source_end - nonoverlapping_end_length,
+                dest_start: source_range_source_end - nonoverlapping_end_length,
+                length: nonoverlapping_end_length,
+            })
+        }
+    }
+
+    ranges
 }
 
 pub fn read_almanac(input: &str) -> Result<Almanac, UnexepectedError> {
@@ -147,6 +230,8 @@ fn read_ranges(range_string: &str) -> Result<Vec<Range>, UnexepectedError> {
             });
         }
     }
+
+    ranges.sort_by(|a, b| a.source_start.partial_cmp(&b.source_start).unwrap());
 
     Ok(ranges)
 }

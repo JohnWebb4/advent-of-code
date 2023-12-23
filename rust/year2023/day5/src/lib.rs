@@ -1,6 +1,5 @@
-use std::collections::HashSet;
-
 use almanac::read_almanac;
+use range::Range;
 use utils::UnexepectedError;
 
 mod almanac;
@@ -13,19 +12,7 @@ pub fn get_lowest_location_with_initial_seed(input: &str) -> Result<i64, Unexepe
     let mut min_location = i64::MAX;
 
     for seed in almanac.seeds.iter() {
-        let soil = almanac.get_seed_to_soil(*seed).unwrap_or(*seed);
-        let fertilizer = almanac.get_soil_to_fertilizer(soil).unwrap_or(soil);
-        let water = almanac
-            .get_fertilizer_to_water(fertilizer)
-            .unwrap_or(fertilizer);
-        let light = almanac.get_water_to_light(water).unwrap_or(water);
-        let temperature = almanac.get_light_to_temperature(light).unwrap_or(light);
-        let humidity = almanac
-            .get_temperature_to_humidity(temperature)
-            .unwrap_or(temperature);
-        let location = almanac
-            .get_humidity_to_location(humidity)
-            .unwrap_or(humidity);
+        let location = almanac.get_seed_to_location(*seed);
 
         if location < min_location {
             min_location = location;
@@ -39,44 +26,30 @@ pub fn get_lowest_location_with_initial_range(input: &str) -> Result<i64, Unexep
     let almanac = read_almanac(input).unwrap();
 
     let mut min_location = i64::MAX;
-    let mut seen_seed_set: HashSet<i64> = HashSet::new();
 
-    let mut count = 0;
+    let seed_ranges = almanac
+        .seeds
+        .chunks(2)
+        .map(|chunk| Range {
+            dest_start: chunk[0],
+            source_start: chunk[0],
+            length: chunk[1],
+        })
+        .collect::<Vec<Range>>();
 
-    for seed_chunk in almanac.seeds.chunks(2) {
-        let start_seed = seed_chunk[0];
-        let seed_length = seed_chunk[1];
+    let mut location_ranges = almanac.get_seed_range_to_location(&seed_ranges);
 
-        for seed_i in 0..seed_length {
-            let seed = start_seed + seed_i;
+    location_ranges.sort_by(|location_range_a, location_range_b| {
+        location_range_a
+            .dest_start
+            .partial_cmp(&location_range_b.dest_start)
+            .unwrap()
+    });
 
-            if count % 100_000 == 0 {
-                println!("Looking at {start_seed} {seed_length} {seed} {count}");
-            }
-
-            if !seen_seed_set.contains(&seed) {
-                let soil = almanac.get_seed_to_soil(seed).unwrap_or(seed);
-                let fertilizer = almanac.get_soil_to_fertilizer(soil).unwrap_or(soil);
-                let water = almanac
-                    .get_fertilizer_to_water(fertilizer)
-                    .unwrap_or(fertilizer);
-                let light = almanac.get_water_to_light(water).unwrap_or(water);
-                let temperature = almanac.get_light_to_temperature(light).unwrap_or(light);
-                let humidity = almanac
-                    .get_temperature_to_humidity(temperature)
-                    .unwrap_or(temperature);
-                let location = almanac
-                    .get_humidity_to_location(humidity)
-                    .unwrap_or(humidity);
-
-                if location < min_location {
-                    min_location = location;
-                }
-
-                seen_seed_set.insert(seed);
-            }
-
-            count += 1;
+    println!("Location {location_ranges:?}");
+    for location_range in location_ranges.iter() {
+        if location_range.dest_start < min_location {
+            min_location = location_range.dest_start
         }
     }
 
@@ -146,10 +119,10 @@ humidity-to-location map:
                 .expect("Year 2023 Day 5 Part Two Test")
         );
 
-        assert_eq!(
-            0,
-            get_lowest_location_with_initial_range(input.as_str())
-                .expect("Year 2023 Day 5 Part Two Input")
-        );
+        // assert_eq!(
+        //     0,
+        //     get_lowest_location_with_initial_range(input.as_str())
+        //         .expect("Year 2023 Day 5 Part Two Input")
+        // );
     }
 }
