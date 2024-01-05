@@ -25,35 +25,6 @@ fn find_least_heat_loss(heat_map: &Map) -> u32 {
         if let Some(path) = paths.pop() {
             // Don't consider is worse than min
             if path.heat_loss < min_heat_loss {
-                if path.path.starts_with(&[
-                    (1, 0),
-                    (2, 0),
-                    (2, 1),
-                    (3, 1),
-                    (4, 1),
-                    (5, 1),
-                    (5, 0),
-                    (6, 0),
-                    (7, 0),
-                    (8, 0),
-                    (8, 1),
-                    (8, 2),
-                    (9, 2),
-                    (10, 2),
-                    (10, 3),
-                    (10, 4),
-                    (11, 4),
-                    (11, 5),
-                    (11, 6),
-                    (11, 7),
-                ]) {
-                    println!(
-                        "Found solution {path:?} {:?} {:?}",
-                        heat_map.get_cell(12, 7),
-                        has_seen.get(&(12, 7))
-                    );
-                }
-
                 if path.x == heat_map.x_max && path.y == heat_map.y_max {
                     min_heat_loss = path.heat_loss
                 } else {
@@ -99,13 +70,46 @@ fn find_least_heat_loss(heat_map: &Map) -> u32 {
                                 vec_path,
                             );
 
+                            if path.path.eq(&[
+                                (1, 0),
+                                (2, 0),
+                                (2, 1),
+                                (3, 1),
+                                (4, 1),
+                                (5, 1),
+                                (5, 0),
+                                (6, 0),
+                                (7, 0),
+                                (8, 0),
+                                (8, 1),
+                                (8, 2),
+                                (9, 2),
+                                (10, 2),
+                                (10, 3),
+                                (10, 4),
+                                (11, 4),
+                                (11, 5),
+                                (11, 6),
+                                (11, 7),
+                            ]) {
+                                println!(
+                                    "Found solution {path:?} {:?} {:?} {:?}",
+                                    next_path,
+                                    heat_map.get_cell(12, 7),
+                                    has_seen.get(&(12, 7))
+                                );
+                            }
+
+                            if path.x == 12 && path.y == 7 {
+                                println!("HMMMM {path:?}");
+                            }
+
                             if let Some(prev_heat_loss) = has_seen.get(&(next_path.x, next_path.y))
                             {
-                                if prev_heat_loss >= &next_path.heat_loss {
-                                    has_seen
-                                        .insert((next_path.x, next_path.y), next_path.heat_loss);
-                                    paths.push(next_path);
-                                }
+                                // if prev_heat_loss >= &next_path.heat_loss {
+                                has_seen.insert((next_path.x, next_path.y), next_path.heat_loss);
+                                paths.push(next_path);
+                                // }
                             } else {
                                 has_seen.insert((next_path.x, next_path.y), next_path.heat_loss);
                                 paths.push(next_path);
