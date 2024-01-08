@@ -1,7 +1,91 @@
-pub fn get_sum_accepted_ratings(input: &str) -> i32 {
-    println!("Hello, world!");
+use comparison::Comparison;
+use once_cell::sync::Lazy;
+use part::{new_part, Part};
+use regex::Regex;
+use rule::{new_rule, Rule};
+use workflow::{new_workflow, Workflow};
 
-    0
+use crate::category::Category;
+
+mod category;
+mod comparison;
+mod part;
+mod rule;
+mod workflow;
+
+pub fn get_sum_accepted_ratings(input: &str) -> i32 {
+    let sections = input.split("\n\n").collect::<Vec<&str>>();
+    let workflows = sections[0]
+        .split('\n')
+        .map(read_workflow)
+        .collect::<Vec<Workflow>>();
+
+    let parts = sections[1]
+        .split('\n')
+        .map(read_part)
+        .collect::<Vec<Part>>();
+
+    let accepted = get_accepted_parts(&workflows, &parts);
+
+    accepted
+        .iter()
+        .fold(0, |sum, part| sum + part.x + part.m + part.a + part.s)
+}
+
+fn get_accepted_parts(workflows: &[Workflow], parts: &[Part]) -> Vec<Part> {
+    vec![]
+}
+
+fn read_workflow(input: &str) -> Workflow {
+    let workflow_re = Lazy::new(|| Regex::new(r"^(\w+)\{((\w+[<>]\d+:\w+,?)+)+(\w+)\}").unwrap());
+    let captures = workflow_re.captures(input).unwrap();
+
+    let capture_len = captures.len();
+
+    let name = captures.get(1).unwrap().as_str().to_string();
+    let rules = captures
+        .get(2)
+        .unwrap()
+        .as_str()
+        .split(',')
+        .filter_map(|rule_string| {
+            if rule_string.is_empty() {
+                None
+            } else {
+                Some(read_rule(rule_string))
+            }
+        })
+        .collect::<Vec<Rule>>();
+    let else_target = captures.get(capture_len - 1).unwrap().as_str().to_string();
+
+    new_workflow(name, rules, else_target)
+}
+
+fn read_rule(input: &str) -> Rule {
+    let rule_re = Lazy::new(|| Regex::new(r"(\w+)([<>])(\w+):(\w+)").unwrap());
+    let captures = rule_re.captures(input).unwrap();
+
+    let category =
+        Category::from_char(captures.get(1).unwrap().as_str().chars().next().unwrap()).unwrap();
+    let comparison =
+        Comparison::from_char(captures.get(2).unwrap().as_str().chars().next().unwrap()).unwrap();
+
+    let amount = captures.get(3).unwrap().as_str().parse::<i32>().unwrap();
+    let target = captures.get(4).unwrap().as_str().to_string();
+
+    new_rule(category, comparison, amount, target)
+}
+
+fn read_part(input: &str) -> Part {
+    let part_re = Lazy::new(|| Regex::new(r"\{x=(\d+),m=(\d+),a=(\d+),s=(\d+)\}").unwrap());
+    let captures = part_re.captures(input).unwrap();
+
+    let x = captures.get(1).unwrap().as_str().parse::<i32>().unwrap();
+    let m = captures.get(2).unwrap().as_str().parse::<i32>().unwrap();
+    let a = captures.get(3).unwrap().as_str().parse::<i32>().unwrap();
+    let s = captures.get(4).unwrap().as_str().parse::<i32>().unwrap();
+
+    new_part(x, m, a, s)
 }
 
 #[cfg(test)]
