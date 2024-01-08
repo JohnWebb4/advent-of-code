@@ -1,5 +1,6 @@
 use crate::rule::Rule;
 
+#[derive(Debug)]
 pub struct Workflow {
     pub name: String,
     pub rules: Vec<Rule>,

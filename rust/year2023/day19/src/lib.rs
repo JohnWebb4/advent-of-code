@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use comparison::Comparison;
 use once_cell::sync::Lazy;
 use part::{new_part, Part};
@@ -33,7 +35,58 @@ pub fn get_sum_accepted_ratings(input: &str) -> i32 {
 }
 
 fn get_accepted_parts(workflows: &[Workflow], parts: &[Part]) -> Vec<Part> {
-    vec![]
+    let workflow_map = workflows.iter().fold(HashMap::new(), |mut map, workflow| {
+        map.insert(&workflow.name, workflow);
+
+        map
+    });
+
+    parts
+        .iter()
+        .filter_map(|part| {
+            let mut pos = &String::from("in");
+
+            while let Some(workflow) = workflow_map.get(pos) {
+                let mut has_match = false;
+
+                for rule in &workflow.rules {
+                    let value = match rule.category {
+                        Category::X => part.x,
+                        Category::M => part.m,
+                        Category::A => part.a,
+                        Category::S => part.s,
+                    };
+
+                    match rule.comparison {
+                        Comparison::Greater => {
+                            if value > rule.amount {
+                                pos = &rule.target;
+                                has_match = true;
+                                break;
+                            }
+                        }
+                        Comparison::Less => {
+                            if value < rule.amount {
+                                pos = &rule.target;
+                                has_match = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if !has_match {
+                    pos = &workflow.else_target;
+                }
+            }
+
+            if pos == "A" {
+                return Some(part.clone());
+            }
+
+            None
+        })
+        .collect::<Vec<Part>>()
 }
 
 fn read_workflow(input: &str) -> Workflow {
@@ -90,6 +143,8 @@ fn read_part(input: &str) -> Part {
 
 #[cfg(test)]
 mod test {
+    use std::fs;
+
     use crate::get_sum_accepted_ratings;
 
     const TEST_INPUT_1: &str = "px{a<2006:qkq,m>2090:A,rfg}
@@ -113,5 +168,9 @@ hdj{m>838:A,pv}
     #[test]
     fn test_get_sum_accepted_ratings() {
         assert_eq!(19114, get_sum_accepted_ratings(TEST_INPUT_1));
+
+        let input = fs::read_to_string("./input.txt").unwrap();
+
+        assert_eq!(362930, get_sum_accepted_ratings(input.as_str()));
     }
 }

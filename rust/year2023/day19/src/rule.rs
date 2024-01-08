@@ -1,5 +1,6 @@
 use crate::{category::Category, comparison::Comparison};
 
+#[derive(Debug)]
 pub struct Rule {
     pub category: Category,
     pub comparison: Comparison,
