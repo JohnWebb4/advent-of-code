@@ -3,17 +3,51 @@ use std::collections::HashMap;
 use comparison::Comparison;
 use once_cell::sync::Lazy;
 use part::{new_part, Part};
+use partrange::PartRange;
 use regex::Regex;
 use rule::{new_rule, Rule};
 use workflow::{new_workflow, Workflow};
 
-use crate::category::Category;
+use crate::{category::Category, partrange::new_partrange};
 
 mod category;
 mod comparison;
 mod part;
+mod partrange;
 mod rule;
 mod workflow;
+
+const RANGE_MAX: i32 = 4000;
+
+pub fn get_sum_accepted_combinations(input: &str) -> i64 {
+    let sections = input.split("\n\n").collect::<Vec<&str>>();
+    let workflows = sections[0]
+        .split('\n')
+        .map(read_workflow)
+        .collect::<Vec<Workflow>>();
+
+    let accepted_ranges = get_accepted_ranges(&workflows);
+
+    accepted_ranges.iter().fold(0, |sum, accepted_range| {
+        sum + [
+            accepted_range.x,
+            accepted_range.m,
+            accepted_range.a,
+            accepted_range.s,
+        ]
+        .iter()
+        .fold(0, |sum, (start, end)| {
+            let length = end - start;
+            let middle = start + length / 2;
+
+            if length % 2 == 0 {
+                sum + (middle * length / 2) as i64
+            } else {
+                sum + ((middle * length / 2) + middle) as i64
+            }
+        })
+    })
+}
 
 pub fn get_sum_accepted_ratings(input: &str) -> i32 {
     let sections = input.split("\n\n").collect::<Vec<&str>>();
@@ -32,6 +66,48 @@ pub fn get_sum_accepted_ratings(input: &str) -> i32 {
     accepted
         .iter()
         .fold(0, |sum, part| sum + part.x + part.m + part.a + part.s)
+}
+
+fn get_accepted_ranges(workflows: &[Workflow]) -> Vec<PartRange> {
+    let mut ranges = vec![new_partrange(
+        (0, RANGE_MAX),
+        (0, RANGE_MAX),
+        (0, RANGE_MAX),
+        (0, RANGE_MAX),
+        String::from("in"),
+    )];
+
+    let workflow_map = workflows.iter().fold(HashMap::new(), |mut map, workflow| {
+        map.insert(&workflow.name, workflow);
+
+        map
+    });
+
+    let accepted_ranges = vec![];
+
+    while !ranges.is_empty() {
+        ranges = ranges.iter().fold(vec![], |new_ranges, partrange| {
+            if let Some(workflow) = workflow_map.get(&partrange.position) {
+                for rule in &workflow.rules {
+                    let range = match rule.category {
+                        Category::X => partrange.x,
+                        Category::M => partrange.m,
+                        Category::A => partrange.a,
+                        Category::S => partrange.s,
+                    };
+
+                    match rule.comparison {
+                        Comparison::Greater => {}
+                        Comparison::Less => {}
+                    }
+                }
+            }
+
+            new_ranges
+        });
+    }
+
+    accepted_ranges
 }
 
 fn get_accepted_parts(workflows: &[Workflow], parts: &[Part]) -> Vec<Part> {
@@ -145,7 +221,7 @@ fn read_part(input: &str) -> Part {
 mod test {
     use std::fs;
 
-    use crate::get_sum_accepted_ratings;
+    use crate::{get_sum_accepted_combinations, get_sum_accepted_ratings};
 
     const TEST_INPUT_1: &str = "px{a<2006:qkq,m>2090:A,rfg}
 pv{a>1716:R,A}
@@ -171,6 +247,8 @@ hdj{m>838:A,pv}
 
         let input = fs::read_to_string("./input.txt").unwrap();
 
-        assert_eq!(362930, get_sum_accepted_ratings(input.as_str()));
+        // assert_eq!(362930, get_sum_accepted_ratings(input.as_str()));
+
+        assert_eq!(167409079868000, get_sum_accepted_combinations(TEST_INPUT_1));
     }
 }
