@@ -19,7 +19,7 @@ mod workflow;
 
 const RANGE_MAX: i32 = 4000;
 
-pub fn get_sum_accepted_combinations(input: &str) -> i64 {
+pub fn get_sum_accepted_combinations(input: &str) -> u128 {
     let sections = input.split("\n\n").collect::<Vec<&str>>();
     let workflows = sections[0]
         .split('\n')
@@ -36,16 +36,16 @@ pub fn get_sum_accepted_combinations(input: &str) -> i64 {
             accepted_range.s,
         ]
         .iter()
-        .fold(0, |sum, (start, end)| {
-            let length = end - start;
-            let middle = start + length / 2;
+        .fold(None, |possibilities, (start, end)| {
+            let length = end - start + 1; // Inclusive range
 
-            if length % 2 == 0 {
-                sum + (middle * length / 2) as i64
+            if let Some(possibilities) = possibilities {
+                Some((length as u128) * possibilities)
             } else {
-                sum + ((middle * length / 2) + middle) as i64
+                Some(length as u128)
             }
         })
+        .unwrap()
     })
 }
 
@@ -83,22 +83,137 @@ fn get_accepted_ranges(workflows: &[Workflow]) -> Vec<PartRange> {
         map
     });
 
-    let accepted_ranges = vec![];
+    let mut accepted_ranges = vec![];
 
     while !ranges.is_empty() {
-        ranges = ranges.iter().fold(vec![], |new_ranges, partrange| {
+        ranges = ranges.iter().fold(vec![], |mut new_ranges, partrange| {
             if let Some(workflow) = workflow_map.get(&partrange.position) {
-                for rule in &workflow.rules {
-                    let range = match rule.category {
-                        Category::X => partrange.x,
-                        Category::M => partrange.m,
-                        Category::A => partrange.a,
-                        Category::S => partrange.s,
-                    };
+                let mut current_partrange_option = Some(partrange.clone());
 
-                    match rule.comparison {
-                        Comparison::Greater => {}
-                        Comparison::Less => {}
+                for rule in &workflow.rules {
+                    if let Some(current_partrange) = current_partrange_option.clone() {
+                        let (start, end) = match rule.category {
+                            Category::X => current_partrange.x,
+                            Category::M => current_partrange.m,
+                            Category::A => current_partrange.a,
+                            Category::S => current_partrange.s,
+                        };
+
+                        let (pass_range, fail_range) = match rule.comparison {
+                            Comparison::Greater => {
+                                let pass_range = if end > rule.amount {
+                                    Some(((rule.amount + 1).max(start), end))
+                                } else {
+                                    None
+                                };
+
+                                let fail_range = if start <= rule.amount {
+                                    Some((start, (rule.amount.min(end))))
+                                } else {
+                                    None
+                                };
+
+                                (pass_range, fail_range)
+                            }
+                            Comparison::Less => {
+                                let pass_range = if start < rule.amount {
+                                    Some((start, (rule.amount - 1).min(end)))
+                                } else {
+                                    None
+                                };
+
+                                let fail_range = if end >= rule.amount {
+                                    Some((rule.amount.max(start), end))
+                                } else {
+                                    None
+                                };
+
+                                (pass_range, fail_range)
+                            }
+                        };
+
+                        if let Some(pass_range) = pass_range {
+                            if pass_range.0 <= pass_range.1 {
+                                let mut pass_partrange = current_partrange.clone();
+                                match rule.category {
+                                    Category::X => {
+                                        pass_partrange.x = pass_range;
+                                    }
+                                    Category::M => {
+                                        pass_partrange.m = pass_range;
+                                    }
+                                    Category::A => {
+                                        pass_partrange.a = pass_range;
+                                    }
+                                    Category::S => {
+                                        pass_partrange.s = pass_range;
+                                    }
+                                }
+
+                                pass_partrange.position = rule.target.clone();
+
+                                if pass_partrange.position == "A" {
+                                    accepted_ranges.push(pass_partrange)
+                                } else if workflow_map.get(&pass_partrange.position).is_some() {
+                                    new_ranges.push(pass_partrange);
+                                }
+                            } else {
+                                panic!("Invalid Pass range {pass_range:?}");
+                            }
+                        }
+
+                        if let Some(fail_range) = fail_range {
+                            if fail_range.0 <= fail_range.1 {
+                                let mut fail_partrange = current_partrange.clone();
+
+                                match rule.category {
+                                    Category::X => {
+                                        fail_partrange.x = fail_range;
+                                    }
+                                    Category::M => {
+                                        fail_partrange.m = fail_range;
+                                    }
+                                    Category::A => {
+                                        fail_partrange.a = fail_range;
+                                    }
+                                    Category::S => {
+                                        fail_partrange.s = fail_range;
+                                    }
+                                }
+
+                                current_partrange_option = Some(fail_partrange);
+                            } else {
+                                panic!("Invalid Fail range {fail_range:?}");
+                            }
+                        } else {
+                            // Fail range is none. No passing rules
+                            current_partrange_option = None;
+
+                            break;
+                        }
+                    }
+                }
+
+                if let Some(current_partrange) = current_partrange_option.clone() {
+                    // Remaining area goes to else
+                    let mut else_partrange = current_partrange.clone();
+                    else_partrange.position = workflow.else_target.clone();
+
+                    // Validate
+                    if [
+                        else_partrange.x,
+                        else_partrange.m,
+                        else_partrange.a,
+                        else_partrange.s,
+                    ]
+                    .iter()
+                    .all(|(start, end)| start <= end)
+                    {
+                        if else_partrange.position == "A" {
+                            accepted_ranges.push(else_partrange);
+                        } else if workflow_map.get(&else_partrange.position).is_some() {
+                            new_ranges.push(else_partrange);
+                        }
                     }
                 }
             }
