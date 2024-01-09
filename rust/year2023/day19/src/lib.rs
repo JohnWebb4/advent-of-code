@@ -90,6 +90,8 @@ fn get_accepted_ranges(workflows: &[Workflow]) -> Vec<PartRange> {
             if let Some(workflow) = workflow_map.get(&partrange.position) {
                 let mut current_partrange_option = Some(partrange.clone());
 
+                println!("Look at {partrange:?} at {workflow:?}");
+
                 for rule in &workflow.rules {
                     if let Some(current_partrange) = current_partrange_option.clone() {
                         let (start, end) = match rule.category {
@@ -133,7 +135,7 @@ fn get_accepted_ranges(workflows: &[Workflow]) -> Vec<PartRange> {
                         };
 
                         if let Some(pass_range) = pass_range {
-                            if pass_range.0 <= pass_range.1 {
+                            if pass_range.0 < pass_range.1 {
                                 let mut pass_partrange = current_partrange.clone();
                                 match rule.category {
                                     Category::X => {
@@ -163,7 +165,7 @@ fn get_accepted_ranges(workflows: &[Workflow]) -> Vec<PartRange> {
                         }
 
                         if let Some(fail_range) = fail_range {
-                            if fail_range.0 <= fail_range.1 {
+                            if fail_range.0 < fail_range.1 {
                                 let mut fail_partrange = current_partrange.clone();
 
                                 match rule.category {

@@ -23,17 +23,17 @@ pub fn new_partrange(
     }
 }
 
-// impl PartRange {
-//     pub fn contains(&self, other: &PartRange) -> bool {
-//         [
-//             (self.x, other.x),
-//             (self.m, other.m),
-//             (self.a, other.a),
-//             (self.s, other.s),
-//         ]
-//         .iter()
-//         .all(|((self_start, self_end), (other_start, other_end))| {
-//             self_start <= other_start && other_end <= self_end
-//         })
-//     }
-// }
+impl PartRange {
+    pub fn contains(&self, other: &PartRange) -> bool {
+        [
+            (self.x, other.x),
+            (self.m, other.m),
+            (self.a, other.a),
+            (self.s, other.s),
+        ]
+        .iter()
+        .all(|((self_start, self_end), (other_start, other_end))| {
+            self_start <= other_start && other_end <= self_end
+        })
+    }
+}
