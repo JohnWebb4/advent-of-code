@@ -21,38 +21,41 @@ pub fn press_button(module_map: &HashMap<String, Module>) -> (usize, usize) {
     let mut low_pulses = 0;
     let mut high_pulses = 0;
 
-    let mut module_state_map = HashMap::<String, PulseType>::new();
-    let mut module_queue = LinkedList::<(PulseType, &String)>::new();
+    let mut module_queue = LinkedList::<(Option<&String>, PulseType, &String)>::new();
 
     let button_name = "button".to_string();
 
     for _i in 0..1000 {
-        module_queue.push_back((PulseType::Low, &button_name));
+        module_queue.push_back((None, PulseType::Low, &button_name));
 
         while !module_queue.is_empty() {
-            let (pulse_type, module_name) = module_queue.pop_front().unwrap();
-            let module_state = module_state_map.get(module_name).unwrap_or(&PulseType::Low);
+            let (prev_module_name, pulse_type, module_name) = module_queue.pop_front().unwrap();
+
             let module = module_map.get(module_name).unwrap();
 
-            println!("Looking at {pulse_type:?} {module_name} {module_state:?}");
+            println!("Looking at {pulse_type:?} {module_name}");
 
-            let next_module_state = match module.module_type {
-                Some(ModuleType::Conjunction) => {}
+            let next_module_state: PulseType = match module.module_type {
+                Some(ModuleType::Conjunction) => {
+                    new_module_state(PulseType::Low, module_state.inputs.clone())
+                }
                 Some(ModuleType::FlipFlop) => {
                     if pulse_type == PulseType::Low {
                         // Flip
-                        match module_state {
+                        let next_pulse_type = match module_state.pulse_type {
                             PulseType::Low => PulseType::High,
                             PulseType::High => PulseType::Low,
-                        }
+                        };
+
+                        new_module_state(next_pulse_type, module_state.inputs.clone())
                     } else {
                         module_state.clone()
                     }
                 }
-                None => PulseType::Low,
+                None => new_module_state(PulseType::Low, module_state.inputs.clone()),
             };
 
-            match next_module_state {
+            match next_module_state.pulse_type {
                 PulseType::Low => {
                     low_pulses += module.children_names.len();
                 }
@@ -62,7 +65,11 @@ pub fn press_button(module_map: &HashMap<String, Module>) -> (usize, usize) {
             };
 
             module.children_names.iter().for_each(|child| {
-                module_queue.push_back((next_module_state.clone(), child));
+                module_queue.push_back((
+                    Some(module_name),
+                    next_module_state.pulse_type.clone(),
+                    child,
+                ));
             });
 
             module_state_map.insert(module_name.clone(), next_module_state);
@@ -82,10 +89,12 @@ fn read_module_map(input: &str) -> HashMap<String, Module> {
             "button".to_string(),
             None,
             ["broadcaster".to_string()].to_vec(),
+            HashMap::new(),
+            PulseType::Low,
         ),
     );
 
-    input
+    let mut module_map = input
         .split('\n')
         .fold(module_map, |mut map, module_string| {
             let module = read_module(module_string);
@@ -93,7 +102,20 @@ fn read_module_map(input: &str) -> HashMap<String, Module> {
             map.insert(module.name.clone(), module);
 
             map
+        });
+
+    // Set input signals
+    module_map.iter().for_each(|(module_name, module)| {
+        module.children_names.iter().for_each(|child_name| {
+            module_map.entry(*child_name).and_modify(|child_module| {
+                child_module
+                    .input_signals
+                    .insert(*module_name, PulseType::Low);
+            });
         })
+    });
+
+    module_map
 }
 
 fn read_module(input: &str) -> Module {
@@ -113,7 +135,13 @@ fn read_module(input: &str) -> Module {
         .map(|s| s.to_string())
         .collect::<Vec<String>>();
 
-    new_module(name, module_type, children_names)
+    new_module(
+        name,
+        module_type,
+        children_names,
+        HashMap::new(),
+        PulseType::Low,
+    )
 }
 
 #[cfg(test)]
