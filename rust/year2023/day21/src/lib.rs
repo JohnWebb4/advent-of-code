@@ -45,8 +45,6 @@ pub fn get_garden_plots_in_steps(num_steps: u32, input: &str) -> usize {
         }
     }
 
-    println!("{:?}", has_seen_final_plot);
-
     has_seen_final_plot.len()
 }
 
@@ -87,6 +85,8 @@ fn read_garden(input: &str) -> Garden {
 
 #[cfg(test)]
 mod test {
+    use std::fs;
+
     use crate::get_garden_plots_in_steps;
 
     const TEST_INPUT: &str = "...........
@@ -104,5 +104,9 @@ mod test {
     #[test]
     fn test_get_garden_plots_in_steps() {
         assert_eq!(16, get_garden_plots_in_steps(6, TEST_INPUT));
+
+        let input = fs::read_to_string("./input.txt").unwrap();
+
+        assert_eq!(3682, get_garden_plots_in_steps(64, input.as_str()))
     }
 }
