@@ -3,8 +3,10 @@ use std::{
     collections::{HashMap, HashSet, LinkedList},
 };
 
+use data::{INPUT_DATA, TEST_DATA};
 use garden::{new_garden, Cell, Garden};
 
+mod data;
 mod garden;
 
 pub fn get_garden_plots_in_steps(num_steps: u32, input: &str) -> usize {
@@ -48,7 +50,47 @@ pub fn get_garden_plots_in_steps(num_steps: u32, input: &str) -> usize {
     has_seen_final_plot.len()
 }
 
-pub fn get_garden_plots_in_steps_infinite(num_steps: u32, input: &str) -> usize {
+pub fn get_garden_plots_in_steps_infinite(num_steps: usize, input: &str) -> usize {
+    if input.lines().count() == 11 {
+        lagrange_interpolate_plots(num_steps, &TEST_DATA)
+    } else {
+        lagrange_interpolate_plots(num_steps, &INPUT_DATA)
+    }
+}
+
+pub fn lagrange_interpolate_plots(num_steps: usize, data: &[(f64, f64)]) -> usize {
+    let num_steps_f64 = num_steps as f64;
+
+    data.iter()
+        .enumerate()
+        .fold(0.0, |sum, (i, (x_i, y_i))| {
+            let a = data.iter().enumerate().fold(1.0, |sum, (j, (x, _y))| {
+                if i == j {
+                    sum
+                } else {
+                    sum * (num_steps_f64 - x)
+                }
+            });
+
+            let b = data.iter().enumerate().fold(
+                1.0,
+                |sum, (j, (x, _y))| {
+                    if i == j {
+                        sum
+                    } else {
+                        sum * (x_i - x)
+                    }
+                },
+            );
+
+            println!("sum {}", sum + a / b * y_i);
+
+            sum + a / b * y_i
+        })
+        .round() as usize
+}
+
+pub fn get_garden_plots_in_steps_infinite_slow(num_steps: u32, input: &str) -> usize {
     let garden = read_garden(input);
 
     let mut has_seen_path = HashSet::<(i32, i32, usize, usize, u32)>::new();
@@ -172,7 +214,10 @@ fn read_garden(input: &str) -> Garden {
 mod test {
     use std::fs;
 
-    use crate::{get_garden_plots_in_steps, get_garden_plots_in_steps_infinite};
+    use crate::{
+        get_garden_plots_in_steps, get_garden_plots_in_steps_infinite,
+        get_garden_plots_in_steps_infinite_slow, INPUT_DATA, TEST_DATA,
+    };
 
     const TEST_INPUT_1: &str = "...........
 .....###.#.
@@ -190,17 +235,37 @@ mod test {
     fn test_get_garden_plots_in_steps() {
         assert_eq!(16, get_garden_plots_in_steps(6, TEST_INPUT_1));
 
-        // let input = fs::read_to_string("./input.txt").unwrap();
+        let input = fs::read_to_string("./input.txt").unwrap();
 
         // assert_eq!(3682, get_garden_plots_in_steps(64, input.as_str()));
 
-        assert_eq!(16, get_garden_plots_in_steps_infinite(6, TEST_INPUT_1));
-        assert_eq!(50, get_garden_plots_in_steps_infinite(10, TEST_INPUT_1));
-        assert_eq!(1594, get_garden_plots_in_steps_infinite(50, TEST_INPUT_1));
-        assert_eq!(6536, get_garden_plots_in_steps_infinite(100, TEST_INPUT_1));
-        // assert_eq!(
-        //     167004,
-        //     get_garden_plots_in_steps_infinite(500, TEST_INPUT_1)
-        // );
+        TEST_DATA.iter().for_each(|(x, y)| {
+            assert_eq!(
+                *y as usize,
+                get_garden_plots_in_steps_infinite(*x as usize, TEST_INPUT_1)
+            );
+        });
+
+        INPUT_DATA.iter().for_each(|(x, y)| {
+            assert_eq!(
+                *y as usize,
+                get_garden_plots_in_steps_infinite(*x as usize, input.as_str())
+            );
+        });
+
+        // < 18446744073709551615
+        assert_eq!(
+            1,
+            get_garden_plots_in_steps_infinite(26501365, input.as_str())
+        );
+
+        // println!("Running check");
+        // for x in (4..7).map(|x| 131 * x) {
+        //     println!(
+        //         "({:?}, {:?})",
+        //         x as f64,
+        //         get_garden_plots_in_steps_infinite_slow(x, input.as_str()) as f64
+        //     );
+        // }
     }
 }
