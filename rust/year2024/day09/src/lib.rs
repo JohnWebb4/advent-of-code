@@ -46,6 +46,39 @@ pub fn get_filesystem_checksum(disk_map_string: &str) -> usize {
         sum + c_i * c.to_string().parse::<usize>().unwrap()
     })
 }
+pub fn get_filesystem_checksum_whole(disk_map_string: &str) -> usize {
+    let disk_map = disk_map_string
+        .chars()
+        .map(|c| c.to_string().parse::<_>().unwrap())
+        .collect::<Vec<usize>>();
+
+    // Note: This is really memory hungry
+    let files = disk_map.iter().step_by(2).enumerate().collect::<Vec<_>>();
+    let spaces = disk_map.iter().skip(1).step_by(2).collect::<Vec<&usize>>();
+
+    let mut space_i = 0_usize;
+    let file_with_space = files
+        .iter()
+        .enumerate()
+        .map(|(file_i, (file_id, file_length))| {
+            // TODO
+            let current_space_i = space_i;
+
+            space_i += **file_length;
+            space_i += **spaces.get(file_i).unwrap_or(&&0);
+
+            (current_space_i, *file_id, **file_length)
+        })
+        .collect::<Vec<(usize, usize, usize)>>();
+
+    space_i = 0;
+
+    for space_i in spaces.iter().enumerate() {}
+
+    dbg!(&file_with_space);
+
+    0
+}
 
 #[cfg(test)]
 mod tests {
@@ -63,8 +96,8 @@ mod tests {
 
         assert_eq!(get_filesystem_checksum(TEST_1), 60);
         assert_eq!(get_filesystem_checksum(TEST_2), 1928);
-
-        // < 5909851146
         assert_eq!(get_filesystem_checksum(input), 6386640365805);
+
+        assert_eq!(get_filesystem_checksum_whole(TEST_2), 2858);
     }
 }
