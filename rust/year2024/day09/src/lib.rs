@@ -57,7 +57,7 @@ pub fn get_filesystem_checksum_whole(disk_map_string: &str) -> usize {
     let spaces = disk_map.iter().skip(1).step_by(2).collect::<Vec<&usize>>();
 
     let mut space_i = 0_usize;
-    let file_with_space = files
+    let mut file_with_space = files
         .iter()
         .enumerate()
         .map(|(file_i, (file_id, file_length))| {
@@ -71,11 +71,35 @@ pub fn get_filesystem_checksum_whole(disk_map_string: &str) -> usize {
         })
         .collect::<Vec<(usize, usize, usize)>>();
 
-    space_i = 0;
+    println!("{:?}", (10..1).collect::<Vec<i32>>());
 
-    for space_i in spaces.iter().enumerate() {}
+    let mut has_changes = true;
+    while has_changes {
+        has_changes = false;
 
-    dbg!(&file_with_space);
+        for i in 0..file_with_space.len() - 1 {
+            let space_start = file_with_space[i].0 + file_with_space[i].2;
+            let space_length = file_with_space[i + 1].0 - space_start;
+
+            let mut j= file_with_space.len() - 1
+            while j > i {
+                if file_with_space[j].2 <= space_length {
+                    file_with_space[j].0 = space_start;
+                    file_with_space.sort_by(|file_1, file_2| file_1.0.cmp(&file_2.0));
+                    has_changes = true;
+                    break;
+                }
+
+                j -= 1;
+            }
+
+            if has_changes {
+                break;
+            }
+        }
+
+        dbg!(&file_with_space);
+    }
 
     0
 }
