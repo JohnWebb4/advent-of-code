@@ -1,8 +1,14 @@
-use std::collections::{HashMap, VecDeque};
+use std::{
+    collections::{HashMap, VecDeque},
+};
 
 // Assumptions
 // x,y > 0 always (lazy)
 // That the map is always enclosed by a border of walls (lazy)
+
+trait ToChar {
+    fn to_char(&self) -> char;
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 struct Point {
@@ -32,14 +38,47 @@ impl MapKey {
             _ => Err(Error::new("Failed to parse map key")),
         }
     }
+}
 
-    // fn to_char(&self) -> char {
-    //     match self {
-    //         MapKey::Wall => '#',
-    //         MapKey::Box => 'O',
-    //         MapKey::Robot => '@',
-    //     }
-    // }
+impl ToChar for MapKey {
+    fn to_char(&self) -> char {
+        match self {
+            MapKey::Wall => '#',
+            MapKey::Box => 'O',
+            MapKey::Robot => '@',
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+enum ExpandedKey {
+    Robot,
+    Wall,
+    BoxLeft,
+    BoxRight,
+}
+
+// impl ExpandedKey {
+//     fn parse(key: &char) -> Result<ExpandedKey, Error> {
+//         match key {
+//             '#' => Ok(ExpandedKey::Wall),
+//             '[' => Ok(ExpandedKey::BoxLeft),
+//             ']' => Ok(ExpandedKey::BoxRight),
+//             '@' => Ok(ExpandedKey::Robot),
+//             _ => Err(Error::new("Failed to parse expanded map key")),
+//         }
+//     }
+// }
+
+impl ToChar for ExpandedKey {
+    fn to_char(&self) -> char {
+        match self {
+            ExpandedKey::Wall => '#',
+            ExpandedKey::BoxLeft => '[',
+            ExpandedKey::BoxRight => ']',
+            ExpandedKey::Robot => '@',
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -75,26 +114,26 @@ impl Error {
     }
 }
 
-struct WareHouseMap {
-    map: HashMap<Point, MapKey>,
+struct WareHouseMap<T> {
+    map: HashMap<Point, T>,
     max_x: i32,
     max_y: i32,
 }
 
-impl WareHouseMap {
-    fn new(map: HashMap<Point, MapKey>, max_x: i32, max_y: i32) -> WareHouseMap {
+impl<T> WareHouseMap<T> {
+    fn new(map: HashMap<Point, T>, max_x: i32, max_y: i32) -> WareHouseMap<T> {
         WareHouseMap { map, max_x, max_y }
     }
 
-    fn get(&self, point: &Point) -> Option<&MapKey> {
+    fn get(&self, point: &Point) -> Option<&T> {
         self.map.get(point)
     }
 
-    fn insert(&mut self, point: Point, map_key: MapKey) -> Option<MapKey> {
+    fn insert(&mut self, point: Point, map_key: T) -> Option<T> {
         self.map.insert(point, map_key)
     }
 
-    fn remove(&mut self, point: &Point) -> Option<MapKey> {
+    fn remove(&mut self, point: &Point) -> Option<T> {
         self.map.remove(point)
     }
 }
@@ -160,25 +199,92 @@ pub fn get_sum_of_box_gps_coordinates(warehouse_map_config: &str) -> i64 {
     sum
 }
 
-// fn print_map(warehouse_map: &WareHouseMap, robot: &Point) {
-//     for y in 0..=warehouse_map.max_y {
-//         for x in 0..=warehouse_map.max_x {
-//             if x == robot.x && y == robot.y {
-//                 print!("@");
-//             } else if let Some(map_key) = warehouse_map.get(&Point::new(x, y)) {
-//                 print!("{}", map_key.to_char())
-//             } else {
-//                 print!(".")
-//             }
-//         }
+pub fn get_sum_of_expanded_box_gps_coordinates(warehouse_map_config: &str) -> i64 {
+    // Lazy, normally would parse directly to the expanded map
+    let (mut robot, mut shrunk_warehouse_map, robot_instructions) =
+        parse_warehouse_map(warehouse_map_config).unwrap();
 
-//         println!();
-//     }
-// }
+    let mut warehouse_map = expand_map(&shrunk_warehouse_map);
+
+    for robot_instruction in &robot_instructions {
+        let (diff_x, diff_y) = match robot_instruction {
+            RobotInstruction::Up => (0_i32, -1_i32),
+            RobotInstruction::Right => (1, 0),
+            RobotInstruction::Down => (0, 1),
+            RobotInstruction::Left => (-1, 0),
+        };
+
+        // Assuming diff_x, diff_x >= -1
+        // Lazy since we know there is a border of walls around
+        let mut move_stack = VecDeque::<(Point, ExpandedKey)>::new();
+        move_stack.push_front((Point::new(robot.x, robot.y), ExpandedKey::Robot));
+        while let Some((current_point, current_key)) = move_stack.pop_front() {
+            let next_x = current_point.x + diff_x;
+            let next_y = current_point.y + diff_y;
+
+            if let Some(next_key) = warehouse_map.get(&Point::new(next_x, next_y)) {
+                match next_key {
+                    ExpandedKey::Wall => {
+                        // Blocked. Can't perform any move(s)
+                        break;
+                    }
+                    ExpandedKey::BoxLeft | ExpandedKey::BoxRight => {
+                        move_stack.push_front((current_point.clone(), current_key.clone()));
+                        move_stack.push_front((Point::new(next_x, next_y), next_key.clone()));
+                    }
+                    _ => {}
+                }
+            } else {
+                // Empty. Can move
+                warehouse_map.insert(Point::new(next_x, next_y), current_key.clone());
+                warehouse_map.remove(&current_point);
+
+                if current_key == ExpandedKey::Robot {
+                    robot = Point::new(next_x, next_y);
+                }
+            }
+        }
+
+        // dbg!(&robot_instruction);
+        print_map(&warehouse_map, &robot);
+    }
+
+    let mut sum = 0_i64;
+    for y in 0..=warehouse_map.max_y {
+        for x in 0..=warehouse_map.max_x {
+            if let Some(map_key) = warehouse_map.get(&Point::new(x, y))
+                && map_key == &ExpandedKey::BoxLeft
+            {
+                sum += x as i64 + 100 * y as i64;
+            }
+        }
+    }
+
+    sum
+}
+
+fn print_map<T>(warehouse_map: &WareHouseMap<T>, robot: &Point)
+where
+    T: ToChar,
+{
+    for y in 0..=warehouse_map.max_y {
+        for x in 0..=warehouse_map.max_x {
+            if x == robot.x && y == robot.y {
+                print!("@");
+            } else if let Some(map_key) = warehouse_map.get(&Point::new(x, y)) {
+                print!("{}", map_key.to_char())
+            } else {
+                print!(".")
+            }
+        }
+
+        println!();
+    }
+}
 
 fn parse_warehouse_map(
     map_input: &str,
-) -> Result<(Point, WareHouseMap, Vec<RobotInstruction>), Error> {
+) -> Result<(Point, WareHouseMap<MapKey>, Vec<RobotInstruction>), Error> {
     let map_parts = map_input.split("\n\n").collect::<Vec<&str>>();
 
     let mut robot: Point = Point::new(0, 0);
@@ -228,6 +334,35 @@ fn parse_warehouse_map(
     Ok((robot, warehouse_map, robot_instructions))
 }
 
+fn expand_map(shrunk_warehouse_map: &WareHouseMap<MapKey>) -> WareHouseMap<ExpandedKey> {
+    let map = shrunk_warehouse_map
+        .map
+        .iter()
+        .fold(HashMap::new(), |mut map, (point, map_key)| {
+            let new_x = 2 * point.x;
+
+            match map_key {
+                MapKey::Box => {
+                    map.insert(Point::new(new_x, point.y), ExpandedKey::BoxLeft);
+                    map.insert(Point::new(new_x + 1, point.y), ExpandedKey::BoxRight);
+                }
+                MapKey::Wall => {
+                    map.insert(Point::new(new_x, point.y), ExpandedKey::Wall);
+                    map.insert(Point::new(new_x + 1, point.y), ExpandedKey::Wall);
+                }
+                MapKey::Robot => {}
+            }
+
+            map
+        });
+
+    WareHouseMap::new(
+        map,
+        shrunk_warehouse_map.max_x * 2,
+        shrunk_warehouse_map.max_y,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use std::fs;
@@ -274,5 +409,7 @@ v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^";
         assert_eq!(get_sum_of_box_gps_coordinates(TEST_1), 2028);
         assert_eq!(get_sum_of_box_gps_coordinates(TEST_2), 10092);
         assert_eq!(get_sum_of_box_gps_coordinates(&input), 1499739);
+
+        assert_eq!(get_sum_of_expanded_box_gps_coordinates(TEST_2), 9021);
     }
 }
