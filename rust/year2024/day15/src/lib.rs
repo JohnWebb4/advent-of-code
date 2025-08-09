@@ -1,5 +1,6 @@
 use std::{
     collections::{HashMap, VecDeque},
+    thread::current,
 };
 
 // Assumptions
@@ -216,32 +217,84 @@ pub fn get_sum_of_expanded_box_gps_coordinates(warehouse_map_config: &str) -> i6
 
         // Assuming diff_x, diff_x >= -1
         // Lazy since we know there is a border of walls around
-        let mut move_stack = VecDeque::<(Point, ExpandedKey)>::new();
-        move_stack.push_front((Point::new(robot.x, robot.y), ExpandedKey::Robot));
-        while let Some((current_point, current_key)) = move_stack.pop_front() {
-            let next_x = current_point.x + diff_x;
-            let next_y = current_point.y + diff_y;
+        let mut move_stack = VecDeque::<Vec<(Point, ExpandedKey)>>::new();
+        move_stack.push_front(vec![(Point::new(robot.x, robot.y), ExpandedKey::Robot)]);
+        while let Some(current_points) = move_stack.pop_front() {
+            // if move_stack.len() > 100 {
+            println!("Move stack size: {:?}", move_stack);
+            print_map(&warehouse_map, &robot);
+            // break;
+            // }
 
-            if let Some(next_key) = warehouse_map.get(&Point::new(next_x, next_y)) {
-                match next_key {
-                    ExpandedKey::Wall => {
-                        // Blocked. Can't perform any move(s)
-                        break;
-                    }
-                    ExpandedKey::BoxLeft | ExpandedKey::BoxRight => {
-                        move_stack.push_front((current_point.clone(), current_key.clone()));
-                        move_stack.push_front((Point::new(next_x, next_y), next_key.clone()));
-                    }
-                    _ => {}
-                }
-            } else {
-                // Empty. Can move
-                warehouse_map.insert(Point::new(next_x, next_y), current_key.clone());
-                warehouse_map.remove(&current_point);
+            if current_points.iter().all(|(current_point, _)| {
+                warehouse_map
+                    .get(&Point::new(
+                        current_point.x + diff_x,
+                        current_point.y + diff_y,
+                    ))
+                    .is_none()
+            }) {
+                // All empty. Can move
+                current_points
+                    .iter()
+                    .for_each(|(current_point, current_key)| {
+                        let next_x = current_point.x + diff_x;
+                        let next_y = current_point.y + diff_y;
 
-                if current_key == ExpandedKey::Robot {
-                    robot = Point::new(next_x, next_y);
-                }
+                        warehouse_map.insert(Point::new(next_x, next_y), current_key.clone());
+                        warehouse_map.remove(&current_point);
+
+                        if current_key == &ExpandedKey::Robot {
+                            robot = Point::new(next_x, next_y);
+                        }
+                    });
+            } else if current_points.iter().all(|(current_point, _)| {
+                warehouse_map
+                    .get(&Point::new(
+                        current_point.x + diff_x,
+                        current_point.y + diff_y,
+                    ))
+                    .is_none_or(|next_key| next_key != &ExpandedKey::Wall)
+            }) {
+                // We're not blocked, but unsure if we can move
+                move_stack.push_front(current_points.clone());
+                move_stack.push_front(
+                    current_points
+                        .iter()
+                        .flat_map(|(current_point, _)| {
+                            let next_x = current_point.x + diff_x;
+                            let next_y = current_point.y + diff_y;
+
+                            let mut next_points: Vec<(Point, ExpandedKey)> = vec![];
+
+                            if let Some(next_key) = warehouse_map.get(&Point::new(next_x, next_y)) {
+                                // Can't be none or wall (checked already)
+                                // Can't physically be robot, so can only be box
+                                if next_key == &ExpandedKey::BoxLeft {
+                                    next_points
+                                        .push((Point::new(next_x, next_y), next_key.clone()));
+                                    // Need to also check right
+                                    // Lazy, assuming box left and right match
+                                    next_points.push((
+                                        Point::new(next_x + 1, next_y),
+                                        ExpandedKey::BoxRight,
+                                    ));
+                                } else if next_key == &ExpandedKey::BoxRight {
+                                    next_points
+                                        .push((Point::new(next_x, next_y), next_key.clone()));
+                                    // Need to also check left
+                                    // Lazy, assuming box left and right match
+                                    next_points.push((
+                                        Point::new(next_x - 1, next_y),
+                                        ExpandedKey::BoxLeft,
+                                    ));
+                                }
+                            }
+
+                            next_points
+                        })
+                        .collect::<Vec<(Point, ExpandedKey)>>(),
+                );
             }
         }
 
