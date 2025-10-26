@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::{HashMap, HashSet, VecDeque},
     thread::current,
 };
 
@@ -202,7 +202,7 @@ pub fn get_sum_of_box_gps_coordinates(warehouse_map_config: &str) -> i64 {
 
 pub fn get_sum_of_expanded_box_gps_coordinates(warehouse_map_config: &str) -> i64 {
     // Lazy, normally would parse directly to the expanded map
-    let (mut robot, mut shrunk_warehouse_map, robot_instructions) =
+    let (mut robot, shrunk_warehouse_map, robot_instructions) =
         parse_warehouse_map(warehouse_map_config).unwrap();
 
     let mut warehouse_map = expand_map(&shrunk_warehouse_map);
@@ -217,89 +217,88 @@ pub fn get_sum_of_expanded_box_gps_coordinates(warehouse_map_config: &str) -> i6
 
         // Assuming diff_x, diff_x >= -1
         // Lazy since we know there is a border of walls around
-        let mut move_stack = VecDeque::<Vec<(Point, ExpandedKey)>>::new();
-        move_stack.push_front(vec![(Point::new(robot.x, robot.y), ExpandedKey::Robot)]);
-        while let Some(current_points) = move_stack.pop_front() {
-            // if move_stack.len() > 100 {
-            println!("Move stack size: {:?}", move_stack);
-            print_map(&warehouse_map, &robot);
-            // break;
-            // }
+        let mut can_move = HashMap::<Point, bool>::new();
+        let mut move_stack = VecDeque::<Point>::new();
+        move_stack.push_front(Point::new(robot.x, robot.y));
+        while let Some(current_point) = move_stack.pop_front() {
+            if can_move.get(&current_point).is_none() {
+                // Need to check if we can move
+                let next_point = Point::new(current_point.x + diff_x, current_point.y + diff_y);
 
-            if current_points.iter().all(|(current_point, _)| {
-                warehouse_map
-                    .get(&Point::new(
-                        current_point.x + diff_x,
-                        current_point.y + diff_y,
-                    ))
-                    .is_none()
-            }) {
-                // All empty. Can move
-                current_points
-                    .iter()
-                    .for_each(|(current_point, current_key)| {
-                        let next_x = current_point.x + diff_x;
-                        let next_y = current_point.y + diff_y;
+                if let Some(next_key) = warehouse_map.get(&next_point) {
+                    match next_key {
+                        &ExpandedKey::BoxLeft => {
+                            let right_box_point = Point::new(next_point.x + 1, next_point.y);
 
-                        warehouse_map.insert(Point::new(next_x, next_y), current_key.clone());
-                        warehouse_map.remove(&current_point);
-
-                        if current_key == &ExpandedKey::Robot {
-                            robot = Point::new(next_x, next_y);
-                        }
-                    });
-            } else if current_points.iter().all(|(current_point, _)| {
-                warehouse_map
-                    .get(&Point::new(
-                        current_point.x + diff_x,
-                        current_point.y + diff_y,
-                    ))
-                    .is_none_or(|next_key| next_key != &ExpandedKey::Wall)
-            }) {
-                // We're not blocked, but unsure if we can move
-                move_stack.push_front(current_points.clone());
-                move_stack.push_front(
-                    current_points
-                        .iter()
-                        .flat_map(|(current_point, _)| {
-                            let next_x = current_point.x + diff_x;
-                            let next_y = current_point.y + diff_y;
-
-                            let mut next_points: Vec<(Point, ExpandedKey)> = vec![];
-
-                            if let Some(next_key) = warehouse_map.get(&Point::new(next_x, next_y)) {
-                                // Can't be none or wall (checked already)
-                                // Can't physically be robot, so can only be box
-                                if next_key == &ExpandedKey::BoxLeft {
-                                    next_points
-                                        .push((Point::new(next_x, next_y), next_key.clone()));
-                                    // Need to also check right
-                                    // Lazy, assuming box left and right match
-                                    next_points.push((
-                                        Point::new(next_x + 1, next_y),
-                                        ExpandedKey::BoxRight,
-                                    ));
-                                } else if next_key == &ExpandedKey::BoxRight {
-                                    next_points
-                                        .push((Point::new(next_x, next_y), next_key.clone()));
-                                    // Need to also check left
-                                    // Lazy, assuming box left and right match
-                                    next_points.push((
-                                        Point::new(next_x - 1, next_y),
-                                        ExpandedKey::BoxLeft,
-                                    ));
-                                }
+                            if let Some(can_move_next_point) = can_move.get(&next_point)
+                                && let Some(can_move_right_box) = can_move.get(&right_box_point)
+                            {
+                                can_move.insert(
+                                    current_point,
+                                    *can_move_next_point && *can_move_right_box,
+                                );
+                            } else {
+                                move_stack.push_front(current_point.clone());
                             }
 
-                            next_points
-                        })
-                        .collect::<Vec<(Point, ExpandedKey)>>(),
-                );
+                            if !can_move.contains_key(&next_point) {
+                                move_stack.push_front(next_point.clone());
+                            }
+
+                            if !can_move.contains_key(&right_box_point) {
+                                move_stack.push_front(right_box_point.clone());
+                            }
+                        }
+                        ExpandedKey::BoxRight => {
+                            let left_box_point = Point::new(next_point.x - 1, next_point.y);
+
+                            if let Some(can_move_next_point) = can_move.get(&next_point)
+                                && let Some(can_move_left_box) = can_move.get(&left_box_point)
+                            {
+                                can_move.insert(
+                                    current_point,
+                                    *can_move_next_point && *can_move_left_box,
+                                );
+                            } else {
+                                move_stack.push_front(current_point.clone());
+                            }
+
+                            if !can_move.contains_key(&next_point) {
+                                move_stack.push_front(next_point.clone());
+                            }
+
+                            if !can_move.contains_key(&left_box_point) {
+                                move_stack.push_front(left_box_point.clone());
+                            }
+                        }
+                        ExpandedKey::Wall => {
+                            can_move.insert(current_point, false);
+                        }
+                        ExpandedKey::Robot => {
+                            // Impossible
+                        }
+                    }
+                } else {
+                    // Empty can move
+                    can_move.insert(current_point, true);
+
+                }
             }
         }
 
+        if can_move
+            .get(&Point::new(robot.x, robot.y))
+            .is_some_and(|m| *m)
+        {
+            println!("Can move: {:?}", robot_instruction);
+            print_map(&warehouse_map, &robot);
+        } else {
+            println!("Cannot move: {:?}", robot_instruction);
+            print_map(&warehouse_map, &robot);
+        }
+
         // dbg!(&robot_instruction);
-        print_map(&warehouse_map, &robot);
+        // print_map(&warehouse_map, &robot);
     }
 
     let mut sum = 0_i64;
