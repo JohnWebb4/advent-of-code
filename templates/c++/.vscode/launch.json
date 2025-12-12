@@ -1,18 +1,6 @@
 {
   "configurations": [
     {
-      "name": "(Windows) Launch",
-      "type": "cppvsdbg",
-      "request": "launch",
-      "program": "${workspaceFolder}/build/Debug/lib_test.exe",
-      "args": [],
-      "stopAtEntry": false,
-      "cwd": "${fileDirname}",
-      "environment": [],
-      "console": "externalTerminal",
-      "preLaunchTask": "Build with CMake / Conan"
-    },
-    {
       "name": "(lldb) Launch",
       "type": "cppdbg",
       "request": "launch",
@@ -23,6 +11,18 @@
       "environment": [],
       "externalConsole": false,
       "MIMode": "lldb",
+      "preLaunchTask": "Build with CMake / Conan"
+    },
+    {
+      "name": "(Windows) Launch",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/Debug/lib_test.exe",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${fileDirname}",
+      "environment": [],
+      "console": "externalTerminal",
       "preLaunchTask": "Build with CMake / Conan"
     }
   ],
