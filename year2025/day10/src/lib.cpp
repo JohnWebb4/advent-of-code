@@ -27,7 +27,7 @@ namespace year2025::day10
     std::vector<WiringSchematic> wiring_schematics;
     std::vector<int> voltages;
 
-    Machine(const std::vector<bool> &light_diaghram, const std::vector<WiringSchematic> &wiring_schematics, const std::vector<int> &voltages) : light_diaghram(light_diaghram), wiring_schematics(wiring_schematics), voltages(voltages) {}
+    Machine(const std::vector<ButtonState> &light_diaghram, const std::vector<WiringSchematic> &wiring_schematics, const std::vector<int> &voltages) : light_diaghram(light_diaghram), wiring_schematics(wiring_schematics), voltages(voltages) {}
   };
 
   void parse_light_diaghram(std::vector<ButtonState> &light_diaghram, std::string_view light_diaghram_view)
@@ -37,10 +37,10 @@ namespace year2025::day10
       switch (light_diaghram_view.at(char_index))
       {
       case '.':
-        light_diaghram.emplace_back(false);
+        light_diaghram.emplace_back(ButtonState::off);
         break;
       case '#':
-        light_diaghram.emplace_back(true);
+        light_diaghram.emplace_back(ButtonState::on);
         break;
       default:
         throw "Error parsing light diaghram";
@@ -51,20 +51,24 @@ namespace year2025::day10
   WiringSchematic parse_wiring_schematic(std::string_view wiring_schematic_view)
   {
     std::vector<int> buttons{};
-    std::size_t prev_comma_index = 0;
+    std::size_t prev_comma_index = 1;
     for (std::size_t comma_index = wiring_schematic_view.find(','); comma_index != -1; comma_index = wiring_schematic_view.find(',', prev_comma_index))
     {
       std::string_view value_view = wiring_schematic_view.substr(prev_comma_index, comma_index - prev_comma_index);
 
-      int value{};
-      if (auto [p, ec] = std::from_chars(value_view.begin(), value_view.end(), value); ec == std::errc{})
+      int value{0};
+      if (auto [p, ec] = std::from_chars(value_view.data(), value_view.data() + value_view.size(), value); ec == std::errc{})
       {
         buttons.emplace_back(value);
       }
       prev_comma_index = comma_index + 1;
     }
-
-    std::cout << "HI " << wiring_schematic_view << std::endl;
+    std::string_view final_value_view = wiring_schematic_view.substr(prev_comma_index, wiring_schematic_view.size() - prev_comma_index - 1);
+    int final_value{ 0 };
+    if (auto [p, ec] = std::from_chars(final_value_view.data(), final_value_view.data() + final_value_view.size(), final_value); ec == std::errc())
+    {
+        buttons.emplace_back(final_value);
+    }
 
     return WiringSchematic(buttons);
   }
@@ -79,11 +83,17 @@ namespace year2025::day10
       prev_space_index = space_index + 1;
     }
     wiring_schematics.emplace_back(parse_wiring_schematic(wiring_schematics_view.substr(prev_space_index)));
-    int hi = 0;
   }
 
   void parse_voltages(std::vector<int> &voltages, std::string_view voltages_view)
   {
+      std::size_t prev_comma_index = 1;
+      int value{0};
+      for (auto [p, ec] = std::from_chars(voltages_view.data(), voltages_view.data() + voltages_view.size(), value); ec == std::errc())
+      {
+
+      }
+
   }
 
   Machine parse_machine(std::string_view machine_instruction)
@@ -94,7 +104,7 @@ namespace year2025::day10
     std::string_view light_diaghram_view = machine_instruction.substr(
         0,
         light_diaghram_index);
-    std::vector<bool> light_diaghram{};
+    std::vector<ButtonState> light_diaghram{};
     parse_light_diaghram(light_diaghram, light_diaghram_view);
 
     std::size_t wiring_schematics_index = machine_instruction.find('{');
