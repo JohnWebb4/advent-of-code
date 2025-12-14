@@ -13,12 +13,12 @@ TEST(Year2025, Day10)
 [.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5})";
 
     std::ifstream input_file{};
-    input_file.open("../../input.txt");
+    input_file.open("../input.txt");
     std::stringstream input_stream{};
     input_stream << input_file.rdbuf();
 
     EXPECT_EQ(year2025::day10::count_fewest_presses_to_configure(test_1), 7);
-    //EXPECT_EQ(year2025::day10::count_fewest_presses_to_configure(input_stream.view()), 0);
+    EXPECT_EQ(year2025::day10::count_fewest_presses_to_configure(input_stream.view()), 390);
 
     input_file.close();
 }

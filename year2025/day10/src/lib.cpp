@@ -4,6 +4,8 @@
 #include <climits>
 #include <queue>
 #include <string_view>
+#include <sstream>
+#include <unordered_map>
 #include <vector>
 
 #include <iostream>
@@ -38,9 +40,10 @@ namespace year2025::day10
   {
   public:
     std::vector<ButtonState> light_diaghram;
-    std::vector<std::size_t> button_press_path;
+    int num_button_presses;
+    int value;
 
-    MachineSolution(const std::vector<ButtonState> &light_diaghram, const std::vector<std::size_t> &button_press_path) : light_diaghram(light_diaghram), button_press_path(button_press_path) {}
+    MachineSolution(const std::vector<ButtonState> &light_diaghram, int num_button_presses, int value) : light_diaghram(light_diaghram), num_button_presses(num_button_presses), value(value) {}
   };
 
   void parse_light_diaghram(std::vector<ButtonState> &light_diaghram, std::string_view light_diaghram_view)
@@ -168,54 +171,63 @@ namespace year2025::day10
     }
   }
 
+  struct SortSolutionByValue
+  {
+    bool operator()(const MachineSolution &l, const MachineSolution &r) const { return (l.value - l.num_button_presses) < (r.value - r.num_button_presses); }
+  } custom_sort_by_value;
+
+  const std::string light_diaghram_to_string(std::vector<ButtonState> &light_diaghram)
+  {
+    std::stringstream key_stream{};
+
+    for (ButtonState &button_state : light_diaghram)
+    {
+      key_stream << (button_state == ButtonState::on ? '#' : '.');
+    }
+
+    return key_stream.str();
+  }
+
   long long count_fewest_presses_to_configure_machine(const Machine &machine)
   {
-    auto get_value = [&machine](const MachineSolution &solution)
-    {
-      int cost = solution.button_press_path.size();
-      int value = 0;
-      for (std::size_t button_i = 0; button_i < solution.light_diaghram.size(); button_i++)
-      {
-        if (machine.light_diaghram[button_i] == solution.light_diaghram[button_i])
-        {
-          value += 5;
-        }
-      }
-      return value - cost;
-    };
-
-    auto comp = [&machine, &get_value](const MachineSolution &l, const MachineSolution &r)
-    {
-      int l_value = get_value(l);
-      int r_value = get_value(r);
-
-      return l_value < r_value;
-    };
-
     // Find solution
-    std::priority_queue<MachineSolution, std::vector<MachineSolution>, decltype(comp)>
-        solution_queue{comp};
+    std::priority_queue<MachineSolution, std::vector<MachineSolution>, SortSolutionByValue>
+        solution_queue{custom_sort_by_value};
 
     std::vector<ButtonState> initial_light_diaghram{};
     for (int i = 0; i < machine.light_diaghram.size(); i++)
     {
       initial_light_diaghram.emplace_back(ButtonState::off);
     }
-    solution_queue.emplace(MachineSolution(initial_light_diaghram, std::vector<std::size_t>{}));
+
+    std::unordered_map<std::string, int> button_state_path_map{};
+    solution_queue.emplace(MachineSolution(initial_light_diaghram, 0, 0));
+    button_state_path_map.emplace(light_diaghram_to_string(initial_light_diaghram), 0);
 
     long long num_fewest_presses{LLONG_MAX};
-    while (solution_queue.size() > 0)
+    while ((solution_queue.size() > 0))
     {
       const MachineSolution solution = solution_queue.top();
       solution_queue.pop();
 
-      if (solution_queue.size() % 1 == 0)
+      if (solution_queue.size() > 100000)
       {
-          std::cout << "...solving... " << solution_queue.size() << " " << get_value(solution);
-          for (auto button : solution.li)
+        throw std::runtime_error("Solution queue is too large");
       }
 
-      if (solution.button_press_path.size() < num_fewest_presses)
+      // std::cout << "Testing " << solution.num_button_presses << " " << solution.value << " ";
+      // for (const ButtonState &button : solution.light_diaghram)
+      // {
+      //   std::cout << (button == ButtonState::on ? '#' : '.');
+      // }
+      // std::cout << "=>";
+      // for (const ButtonState &button : machine.light_diaghram)
+      // {
+      //   std::cout << (button == ButtonState::on ? '#' : '.');
+      // }
+      // std::cout << std::endl;
+
+      if (solution.num_button_presses < num_fewest_presses)
       {
         bool has_solved = true;
         for (std::size_t button_i = 0; button_i < solution.light_diaghram.size(); button_i++)
@@ -230,19 +242,13 @@ namespace year2025::day10
         // Check match
         if (has_solved)
         {
-          std::cout << "Solved ";
-          for (auto &button : solution.button_press_path)
+          std::cout << "Found a solution in" << solution.num_button_presses << std::endl;
+          if (solution.num_button_presses < num_fewest_presses)
           {
-            std::cout << button << " ";
-          }
-          std::cout << std::endl;
-
-          if (solution.button_press_path.size() < num_fewest_presses)
-          {
-              num_fewest_presses = solution.button_press_path.size();
+            num_fewest_presses = solution.num_button_presses;
           }
         }
-        else if (solution.button_press_path.size() < (num_fewest_presses - 1))
+        else if (solution.num_button_presses < (num_fewest_presses - 1))
         {
           for (std::size_t wiring_schematic_i = 0; wiring_schematic_i < machine.wiring_schematics.size(); wiring_schematic_i++)
           {
@@ -252,16 +258,33 @@ namespace year2025::day10
               next_light_diaghram[button] = next_light_diaghram[button] == ButtonState::on ? ButtonState::off : ButtonState::on;
             }
 
-            std::vector<std::size_t> next_button_path = solution.button_press_path;
-            next_button_path.emplace_back(wiring_schematic_i);
+            int value{0};
+            for (std::size_t button_i = 0; button_i < next_light_diaghram.size(); button_i++)
+            {
+              if (next_light_diaghram[button_i] == machine.light_diaghram[button_i])
+              {
+                value++;
+              }
+            }
 
-            solution_queue.emplace(MachineSolution(next_light_diaghram, next_button_path));
+            std::string next_light_diaghram_key = light_diaghram_to_string(next_light_diaghram);
+
+            if (!button_state_path_map.contains(next_light_diaghram_key))
+            {
+              solution_queue.emplace(MachineSolution(next_light_diaghram, solution.num_button_presses + 1, value));
+              button_state_path_map.emplace(next_light_diaghram_key, solution.num_button_presses + 1);
+            }
+            else if (button_state_path_map.at(next_light_diaghram_key) > (solution.num_button_presses + 1))
+            {
+              solution_queue.emplace(MachineSolution(next_light_diaghram, solution.num_button_presses + 1, value));
+              button_state_path_map.emplace(next_light_diaghram_key, solution.num_button_presses + 1);
+            }
           }
         }
       }
     }
 
-    std::cout << "Num fewest presses" << num_fewest_presses << std::endl;
+    std::cout << "Num fewest presses " << num_fewest_presses << std::endl;
 
     return num_fewest_presses;
   }
