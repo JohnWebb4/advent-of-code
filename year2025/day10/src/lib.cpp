@@ -209,6 +209,12 @@ namespace year2025::day10
       const MachineSolution solution = solution_queue.top();
       solution_queue.pop();
 
+      if (solution_queue.size() % 1 == 0)
+      {
+          std::cout << "...solving... " << solution_queue.size() << " " << get_value(solution);
+          for (auto button : solution.li)
+      }
+
       if (solution.button_press_path.size() < num_fewest_presses)
       {
         bool has_solved = true;
@@ -231,14 +237,12 @@ namespace year2025::day10
           }
           std::cout << std::endl;
 
-          long long num_button_presses = solution.button_press_path.size() + 1;
-          if (num_button_presses < num_fewest_presses)
+          if (solution.button_press_path.size() < num_fewest_presses)
           {
-            num_fewest_presses = num_button_presses;
+              num_fewest_presses = solution.button_press_path.size();
           }
-          break;
         }
-        else if (solution.button_press_path.size() < num_fewest_presses - 1)
+        else if (solution.button_press_path.size() < (num_fewest_presses - 1))
         {
           for (std::size_t wiring_schematic_i = 0; wiring_schematic_i < machine.wiring_schematics.size(); wiring_schematic_i++)
           {
@@ -256,6 +260,8 @@ namespace year2025::day10
         }
       }
     }
+
+    std::cout << "Num fewest presses" << num_fewest_presses << std::endl;
 
     return num_fewest_presses;
   }
