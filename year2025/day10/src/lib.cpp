@@ -297,9 +297,14 @@ namespace year2025::day10
     std::string voltages_key;
     std::vector<int> voltages;
     long long num_button_presses;
+    std::vector<int> button_presses;
     long long value;
 
-    VoltageSolution(const std::string voltages_key, const std::vector<int> &voltages, long long num_button_presses, long long value) : voltages_key(voltages_key), voltages(voltages), num_button_presses(num_button_presses), value(value) {}
+    VoltageSolution(const std::string voltages_key, const std::vector<int> &voltages, long long num_button_presses, long long value, const std::vector<int> &button_presses) : voltages_key(voltages_key),
+                                                                                                                                                                               voltages(voltages),
+                                                                                                                                                                               num_button_presses(num_button_presses),
+                                                                                                                                                                               button_presses(button_presses),
+                                                                                                                                                                               value(value) {}
   };
 
   const long long VOLTAGE_VALUE_SCALE = 1;
@@ -336,18 +341,22 @@ namespace year2025::day10
     {
       initial_voltages.emplace_back(0);
     }
+    std::vector<int> initial_button_presses{};
+    for (int i = 0; i < machine.wiring_schematics.size(); i++)
+    {
+      initial_button_presses.emplace_back(0);
+    }
     const std::string initial_voltages_key = voltages_to_string(initial_voltages);
-    solution_queue.emplace(VoltageSolution(initial_voltages_key, initial_voltages, 0, 0));
+    solution_queue.emplace(VoltageSolution(initial_voltages_key, initial_voltages, 0, 0, initial_button_presses));
 
     std::unordered_map<std::string, long long> counter_state_path_map{};
     counter_state_path_map.emplace(initial_voltages_key, 0);
 
     long long num_fewest_presses{LONG_LONG_MAX};
     long long num_steps = 0;
-    long long num_insertions = 0;
     while ((solution_queue.size() > 0))
     {
-      if ((num_steps % 10000000) == 0)
+      if ((num_steps % 10000) == 0)
       {
         std::cout << "Thinking...." << num_steps << " " << solution_queue.size() << " " << counter_state_path_map.size() << std::endl;
       }
@@ -356,7 +365,7 @@ namespace year2025::day10
       VoltageSolution solution = solution_queue.top();
       solution_queue.pop();
 
-      if (solution_queue.size() > 100000)
+      if (solution_queue.size() > 1000000)
       {
         throw std::runtime_error("Solution queue is too large");
       }
@@ -374,62 +383,72 @@ namespace year2025::day10
         }
         else if (solution.num_button_presses < (num_fewest_presses - 1))
         {
-          if (counter_state_path_map.at(solution.voltages_key) >= solution.num_button_presses)
+          if ((!counter_state_path_map.contains(solution.voltages_key)) || counter_state_path_map.at(solution.voltages_key) >= solution.num_button_presses)
           {
             for (std::size_t wiring_schematic_i = 0; wiring_schematic_i < machine.wiring_schematics.size(); wiring_schematic_i++)
             {
-              bool is_any_counter_over_limit = false;
-              std::vector<int> next_voltages = solution.voltages;
-              for (int counter : machine.wiring_schematics.at(wiring_schematic_i).wiring)
+              if (solution.button_presses[wiring_schematic_i] == 0)
               {
-                // You can only increment counters.
-                // If any counter is over the desired value, we skip.
-                if (next_voltages[counter] >= machine.voltages[counter])
+                // Find the max value we can increment this schematic by
+                // Then count down from that number and emplace
+                int max_button_presses = INT32_MAX;
+                for (int counter_i : machine.wiring_schematics[wiring_schematic_i].wiring)
                 {
-                  is_any_counter_over_limit = true;
-                  break;
-                }
-                else
-                {
-                  next_voltages[counter]++;
-                }
-              }
-
-              if (!is_any_counter_over_limit)
-              {
-                long long next_value{0};
-                for (std::size_t counter_i = 0; counter_i < next_voltages.size(); counter_i++)
-                {
-                  next_value -= std::abs(machine.voltages[counter_i] - next_voltages[counter_i]);
+                  max_button_presses = std::min(max_button_presses, machine.voltages[counter_i] - solution.voltages[counter_i]);
                 }
 
-                std::string next_voltages_key = voltages_to_string(next_voltages);
-                long long next_num_button_presses = solution.num_button_presses + 1;
-
-                if (!counter_state_path_map.contains(next_voltages_key))
+                for (int button_presses = max_button_presses; button_presses > 0; button_presses--)
                 {
-                  solution_queue.emplace(VoltageSolution(next_voltages_key, next_voltages, next_num_button_presses, next_value));
-                  counter_state_path_map.emplace(next_voltages_key, next_num_button_presses);
-
-                  if ((num_insertions % 100000 == 0) && counter_state_path_map.size() > 5000000)
+                  bool is_any_counter_over_limit = false;
+                  std::vector<int> next_voltages = solution.voltages;
+                  std::vector<int> next_button_presses = solution.button_presses;
+                  next_button_presses[wiring_schematic_i] += button_presses;
+                  for (int counter : machine.wiring_schematics.at(wiring_schematic_i).wiring)
                   {
-                    std::cout << "Add new to queue " << next_voltages_key << " => " << next_num_button_presses << " size " << counter_state_path_map.size() << std::endl;
-                  }
-                  num_insertions++;
-                }
-                else if (counter_state_path_map.at(next_voltages_key) > next_num_button_presses)
-                {
-                  solution_queue.emplace(VoltageSolution(next_voltages_key, next_voltages, next_num_button_presses, next_value));
-
-                  if (num_insertions % 100000 == 0)
-                  {
-                    std::cout << "Update queue " << next_voltages_key << " => " << next_num_button_presses << " was " << counter_state_path_map.at(next_voltages_key) << std::endl;
+                    // You can only increment counters.
+                    // If any counter is over the desired value, we skip.
+                    if ((next_voltages[counter] + button_presses) > machine.voltages[counter])
+                    {
+                      is_any_counter_over_limit = true;
+                      break;
+                    }
+                    else
+                    {
+                      next_voltages[counter] += button_presses;
+                    }
                   }
 
-                  counter_state_path_map[next_voltages_key] = next_num_button_presses;
+                  if (!is_any_counter_over_limit)
+                  {
+                    long long next_value{0};
+                    for (std::size_t counter_i = 0; counter_i < next_voltages.size(); counter_i++)
+                    {
+                      next_value -= std::abs(machine.voltages[counter_i] - next_voltages[counter_i]);
+                    }
 
-                  num_insertions++;
+                    std::string next_voltages_key = voltages_to_string(next_voltages);
+                    long long next_num_button_presses = solution.num_button_presses + button_presses;
+
+                    if (!counter_state_path_map.contains(next_voltages_key))
+                    {
+                      solution_queue.emplace(VoltageSolution(next_voltages_key, next_voltages, next_num_button_presses, next_value, next_button_presses));
+
+                      counter_state_path_map.emplace(next_voltages_key, next_num_button_presses);
+                    }
+                    else if (counter_state_path_map.at(next_voltages_key) > next_num_button_presses)
+                    {
+                      solution_queue.emplace(VoltageSolution(next_voltages_key, next_voltages, next_num_button_presses, next_value, next_button_presses));
+
+                      if (num_steps % 1000 == 0)
+                      {
+                        std::cout << "Update " << next_voltages_key << ": " << counter_state_path_map[next_voltages_key] << " => " << next_num_button_presses << std::endl;
+                      }
+                      counter_state_path_map[next_voltages_key] = next_num_button_presses;
+                    }
+                  }
                 }
+
+                break;
               }
             }
           }
