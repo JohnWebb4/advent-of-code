@@ -2,6 +2,7 @@
 
 #include <charconv>
 #include <climits>
+#include <format>
 #include <numeric>
 #include <queue>
 #include <string_view>
@@ -292,166 +293,110 @@ namespace year2025::day10
     return num_fewest_presses_to_configure;
   }
 
-  class VoltageSolution
+  template <typename T>
+  class Matrix
   {
   public:
-    std::vector<int> button_presses;
-    long long value;
+    std::unordered_map<std::string, T> values;
+    std::size_t width;
+    std::size_t height;
 
-    VoltageSolution(const std::vector<int> &button_presses, long long value) : button_presses(button_presses), value(value) {}
+    static std::string get_key(std::size_t x, std::size_t y)
+    {
+      return std::format("{},{}", x, y);
+    }
+
+    Matrix(std::size_t width, std::size_t height) : values(), width(width), height(height)
+    {
+    }
+
+    const T &at(int x, int y) const
+    {
+      return this->values.at(Matrix::get_key(x, y));
+    }
+
+    auto emplace(int x, int y, T value)
+    {
+      if (x >= this->width || x < 0)
+      {
+        throw std::invalid_argument{"Matrix x value is wrong"};
+      }
+
+      if (y >= this->height || y < 0)
+      {
+        throw std::invalid_argument{"Matrix y value is wrong"};
+      }
+
+      return this->values.emplace(Matrix::get_key(x, y), value);
+    }
+
+    Matrix transpose() const
+    {
+      Matrix new_matrix{this->height, this->width};
+
+      for (std::size_t x = 0; x < this->width; x++)
+      {
+        for (std::size_t y = 0; y < this->height; y++)
+        {
+          new_matrix.emplace(y, x, this->at(x, y));
+        }
+      }
+
+      return new_matrix;
+    }
   };
-
-  const long long VOLTAGE_VALUE_SCALE = 2;
-  struct SortVoltageByValue
-  {
-    bool operator()(const VoltageSolution &l, const VoltageSolution &r) const
-    {
-      return l.value < r.value;
-    }
-  } custom_voltage_sort_by_value;
-
-  const std::string voltages_to_string(const std::vector<int> &voltages)
-  {
-    std::stringstream key_stream{};
-
-    for (const int &voltage : voltages)
-    {
-      key_stream << voltage << ',';
-    }
-
-    return key_stream.str();
-  }
 
   long long count_fewest_presses_to_configure_machine_voltage(const Machine &machine)
   {
-    const std::string machine_voltages_key = voltages_to_string(machine.voltages);
+    std::unique_ptr<Matrix<int>> min_matrix = std::make_unique<Matrix<int>>(Matrix<int>(machine.wiring_schematics.size() + 1, machine.voltages.size() + 1));
 
-    std::priority_queue<VoltageSolution, std::vector<VoltageSolution>, SortVoltageByValue>
-        solution_queue{custom_voltage_sort_by_value};
-
-    std::vector<int> initial_button_presses{};
-    for (int i = 0; i < machine.wiring_schematics.size(); i++)
+    for (std::size_t button_i = 0; button_i < machine.wiring_schematics.size(); button_i++)
     {
-      initial_button_presses.emplace_back(0);
-    }
-    solution_queue.emplace(VoltageSolution(initial_button_presses, 0));
-
-    std::unordered_map<std::string, long long> voltages_steps_map{};
-
-    long long num_fewest_presses{LONG_LONG_MAX};
-    long long num_steps = 0;
-    while ((solution_queue.size() > 0))
-    {
-      if ((num_steps % 1000) == 0)
+      for (int counter : machine.wiring_schematics[button_i].wiring)
       {
-        std::cout << "Thinking...." << num_steps << " " << solution_queue.size() << std::endl;
-      }
-      num_steps++;
-
-      if (solution_queue.size() > 1000000)
-      {
-        throw std::runtime_error("Solution queue is too large");
+        min_matrix->emplace(button_i, counter, 1);
       }
 
-      VoltageSolution solution = solution_queue.top();
-      solution_queue.pop();
-
-      long long num_button_presses = std::reduce(solution.button_presses.begin(), solution.button_presses.end());
-
-      if (num_button_presses < num_fewest_presses)
+      // Emplace ignore existing values
+      for (std::size_t counter_i = 0; counter_i < machine.voltages.size(); counter_i++)
       {
-        std::vector<int> voltages(static_cast<int>(machine.voltages.size()), 0);
-        for (std::size_t button_i = 0; button_i < solution.button_presses.size(); button_i++)
-        {
-          for (const int &counter : machine.wiring_schematics[button_i].wiring)
-          {
-            voltages[counter] += solution.button_presses[button_i];
-          }
-        }
-        std::string voltages_key = voltages_to_string(voltages);
-
-        if (!voltages_steps_map.contains(voltages_key) || (voltages_steps_map.at(voltages_key) >= num_button_presses))
-        {
-          // std::cout << voltages_key << std::endl;
-
-          // Check match
-          if (voltages_key == machine_voltages_key)
-          {
-            std::cout << "Found a solution in " << num_steps << " => " << num_button_presses << std::endl;
-            if (num_button_presses < num_fewest_presses)
-            {
-              num_fewest_presses = num_button_presses;
-            }
-          }
-          else if (num_button_presses < (num_fewest_presses - 1))
-          {
-            for (std::size_t button_i = 0; button_i < machine.wiring_schematics.size(); button_i++)
-            {
-              // Find the max value we can increment this schematic by
-              // Then count down from that number and emplace
-              int max_button_presses = INT32_MAX;
-              for (int counter_i : machine.wiring_schematics[button_i].wiring)
-              {
-                max_button_presses = std::min(max_button_presses, machine.voltages[counter_i] - voltages[counter_i]);
-              }
-
-              for (int button_presses = max_button_presses; button_presses >= 0; button_presses--)
-              {
-                bool is_any_counter_over_limit = false;
-                std::vector<int> next_voltages = voltages;
-                std::vector<int> next_button_presses = solution.button_presses;
-                next_button_presses[button_i] += button_presses;
-                for (int counter : machine.wiring_schematics.at(button_i).wiring)
-                {
-                  // You can only increment counters.
-                  // If any counter is over the desired value, we skip.
-                  if ((next_voltages[counter] + button_presses) > machine.voltages[counter])
-                  {
-                    is_any_counter_over_limit = true;
-                    break;
-                  }
-                  else
-                  {
-                    next_voltages[counter] += button_presses;
-                  }
-                }
-
-                if (!is_any_counter_over_limit)
-                {
-
-                  std::string next_voltages_key = voltages_to_string(next_voltages);
-                  long long next_num_button_presses = num_button_presses + button_presses;
-
-                  if (!voltages_steps_map.contains(next_voltages_key) || voltages_steps_map.at(next_voltages_key) > num_button_presses)
-                  {
-                    long long next_value{-next_num_button_presses};
-                    for (std::size_t counter_i = 0; counter_i < next_voltages.size(); counter_i++)
-                    {
-                      next_value += VOLTAGE_VALUE_SCALE * next_voltages[counter_i];
-                    }
-
-                    solution_queue.emplace(VoltageSolution(next_button_presses, next_value));
-
-                    if (voltages_steps_map.contains(next_voltages_key))
-                    {
-                      voltages_steps_map[next_voltages_key] = next_num_button_presses;
-                    }
-                    else
-                    {
-                      voltages_steps_map.emplace(next_voltages_key, next_num_button_presses);
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+        min_matrix->emplace(button_i, counter_i, 0);
       }
+
+      min_matrix->emplace(button_i, machine.voltages.size(), 1);
     }
 
-    std::cout << "Num fewest presses in " << num_steps << " => " << num_fewest_presses << std::endl;
+    for (std::size_t counter_i = 0; counter_i < machine.voltages.size(); counter_i++)
+    {
+      min_matrix->emplace(machine.wiring_schematics.size(), counter_i, machine.voltages[counter_i]);
+    }
+    min_matrix->emplace(machine.wiring_schematics.size(), machine.voltages.size(), 0);
 
-    return num_fewest_presses;
+    std::unique_ptr<Matrix<int>> transpose_matrix = std::make_unique<Matrix<int>>(min_matrix->transpose());
+
+    std::unique_ptr<Matrix<int>> duality_matrix = std::make_unique<Matrix<int>>(Matrix<int>(transpose_matrix->width + machine.wiring_schematics.size() + 1, transpose_matrix->height));
+
+    for (std::size_t equation_i = 0; equation_i < transpose_matrix->height - 1; equation_i++)
+    {
+      for (std::size_t slack_i = 0; slack_i < machine.voltages.size(); slack_i++)
+      {
+
+        duality_matrix->emplace(slack_i, equation_i, transpose_matrix->at(slack_i, equation_i));
+      }
+
+      duality_matrix->emplace(machine.voltages.size() + equation_i, equation_i, 1);
+      for (std::size_t button_i = 0; button_i < machine.wiring_schematics.size(); button_i++)
+      {
+        duality_matrix->emplace(machine.voltages.size() + button_i, equation_i, 1);
+      }
+
+      duality_matrix->emplace(machine.wiring_schematics.size() + machine.voltages.size(), equation_i)
+    }
+
+    // Simplex
+    int hi = 0;
+
+    return 0ll;
   }
 
   long long count_fewest_presses_to_configure_voltage(std::string_view manual_instructions)
