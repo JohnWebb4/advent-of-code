@@ -297,22 +297,21 @@ namespace year2025::day10
   class Matrix
   {
   public:
-    std::unordered_map<std::string, T> values;
+    std::vector<std::vector<int>> values;
     std::size_t width;
     std::size_t height;
 
-    static std::string get_key(std::size_t x, std::size_t y)
-    {
-      return std::format("{},{}", x, y);
-    }
-
     Matrix(std::size_t width, std::size_t height) : values(), width(width), height(height)
     {
+      for (std::size_t y = 0; y < height; y++)
+      {
+        this->values.emplace_back(std::vector<int>(width));
+      }
     }
 
     const T &at(int x, int y) const
     {
-      return this->values.at(Matrix::get_key(x, y));
+      return this->values[y][x];
     }
 
     auto emplace(int x, int y, T value)
@@ -327,76 +326,142 @@ namespace year2025::day10
         throw std::invalid_argument{"Matrix y value is wrong"};
       }
 
-      return this->values.emplace(Matrix::get_key(x, y), value);
-    }
-
-    Matrix transpose() const
-    {
-      Matrix new_matrix{this->height, this->width};
-
-      for (std::size_t x = 0; x < this->width; x++)
-      {
-        for (std::size_t y = 0; y < this->height; y++)
-        {
-          new_matrix.emplace(y, x, this->at(x, y));
-        }
-      }
-
-      return new_matrix;
+      return this->values[y][x] = value;
     }
   };
 
   long long count_fewest_presses_to_configure_machine_voltage(const Machine &machine)
   {
-    std::unique_ptr<Matrix<int>> min_matrix = std::make_unique<Matrix<int>>(Matrix<int>(machine.wiring_schematics.size() + 1, machine.voltages.size() + 1));
-
-    for (std::size_t button_i = 0; button_i < machine.wiring_schematics.size(); button_i++)
-    {
-      for (int counter : machine.wiring_schematics[button_i].wiring)
-      {
-        min_matrix->emplace(button_i, counter, 1);
-      }
-
-      // Emplace ignore existing values
-      for (std::size_t counter_i = 0; counter_i < machine.voltages.size(); counter_i++)
-      {
-        min_matrix->emplace(button_i, counter_i, 0);
-      }
-
-      min_matrix->emplace(button_i, machine.voltages.size(), 1);
-    }
-
-    for (std::size_t counter_i = 0; counter_i < machine.voltages.size(); counter_i++)
-    {
-      min_matrix->emplace(machine.wiring_schematics.size(), counter_i, machine.voltages[counter_i]);
-    }
-    min_matrix->emplace(machine.wiring_schematics.size(), machine.voltages.size(), 0);
-
-    std::unique_ptr<Matrix<int>> transpose_matrix = std::make_unique<Matrix<int>>(min_matrix->transpose());
-
-    std::unique_ptr<Matrix<int>> duality_matrix = std::make_unique<Matrix<int>>(Matrix<int>(transpose_matrix->width + machine.wiring_schematics.size() + 1, transpose_matrix->height));
-
-    for (std::size_t equation_i = 0; equation_i < transpose_matrix->height - 1; equation_i++)
-    {
-      for (std::size_t slack_i = 0; slack_i < machine.voltages.size(); slack_i++)
-      {
-
-        duality_matrix->emplace(slack_i, equation_i, transpose_matrix->at(slack_i, equation_i));
-      }
-
-      duality_matrix->emplace(machine.voltages.size() + equation_i, equation_i, 1);
-      for (std::size_t button_i = 0; button_i < machine.wiring_schematics.size(); button_i++)
-      {
-        duality_matrix->emplace(machine.voltages.size() + button_i, equation_i, 1);
-      }
-
-      duality_matrix->emplace(machine.wiring_schematics.size() + machine.voltages.size(), equation_i)
-    }
-
     // Simplex
-    int hi = 0;
+    // Since every coefficient is 1 (every button increments by 1), we can pre-calculate the transpose and duality matrix.
 
-    return 0ll;
+    std::unique_ptr<Matrix<int>> duality_matrix = std::make_unique<Matrix<int>>(Matrix<int>(machine.voltages.size() + machine.wiring_schematics.size() + 2, machine.voltages.size() + machine.wiring_schematics.size() + 1));
+
+    for (std::size_t schematic_i = 0; schematic_i < machine.wiring_schematics.size(); schematic_i++)
+    {
+      for (std::size_t y = 0; y < machine.voltages.size(); y++)
+      {
+        if (std::find(machine.wiring_schematics[schematic_i].wiring.begin(), machine.wiring_schematics[schematic_i].wiring.end(), y) != machine.wiring_schematics[schematic_i].wiring.end())
+        {
+          duality_matrix->emplace(y, schematic_i, 1);
+        }
+      }
+
+      duality_matrix->emplace(machine.voltages.size() + schematic_i, schematic_i, 1);
+      duality_matrix->emplace(duality_matrix->width - 1, schematic_i, 1);
+    }
+
+    for (std::size_t voltage_i = 0; voltage_i < machine.voltages.size(); voltage_i++)
+    {
+      duality_matrix->emplace(voltage_i, duality_matrix->height - 1, -machine.voltages[voltage_i]);
+    }
+    duality_matrix->emplace(duality_matrix->width - 2, duality_matrix->height - 1, 1);
+
+    // Sort diagonal
+    for (std::size_t diagonal_i = 0; diagonal_i < duality_matrix->height; diagonal_i++)
+    {
+      std::vector<std::vector<int>>::iterator diagonal_iter = std::find_if(duality_matrix->values.begin() + diagonal_i, duality_matrix->values.end(), [diagonal_i](const std::vector<int> &v)
+                                                                           { return v[diagonal_i] == 1; });
+
+      if (diagonal_iter != duality_matrix->values.end())
+      {
+        std::iter_swap(duality_matrix->values.begin() + diagonal_i, diagonal_iter);
+      }
+      else
+      {
+        // We have to copy a previous row to make this work
+        std::vector<std::vector<int>>::iterator copy_diagonal_iter = std::find_if(duality_matrix->values.begin(), duality_matrix->values.begin() + diagonal_i - 1, [diagonal_i](const std::vector<int> &v)
+                                                                                  { return v[diagonal_i] == 1; });
+
+        if (copy_diagonal_iter != duality_matrix->values.end())
+        {
+          for (int x = 0; x < copy_diagonal_iter->size(); x++)
+          {
+            duality_matrix->values[diagonal_i][x] += (*copy_diagonal_iter)[x];
+          }
+        }
+        else
+        {
+          throw std::invalid_argument{"I can't find a good row"};
+        }
+      }
+    }
+
+    // Reduced row echelon
+    // Assuming the first diagonal is one. From the problem description.
+    for (std::size_t diag_i = 0; diag_i < machine.voltages.size(); diag_i++)
+    {
+      {
+        int scale = duality_matrix->at(diag_i, diag_i);
+        for (int x = 0; x < duality_matrix->width; x++)
+        {
+          duality_matrix->values[diag_i][x] *= scale;
+        }
+      }
+
+      for (std::size_t y = diag_i + 1; y < machine.voltages.size(); y++)
+      {
+        if (duality_matrix->at(diag_i, y) != 0)
+        {
+          int scale = duality_matrix->at(diag_i, y);
+
+          for (std::size_t x = 0; x < duality_matrix->width; x++)
+          {
+            duality_matrix->values[y][x] -= (scale * duality_matrix->values[diag_i][x]);
+          }
+        }
+      }
+    }
+
+    for (long long diag_i = machine.voltages.size() - 1; diag_i >= 0; diag_i--)
+    {
+      {
+        int scale = duality_matrix->at(diag_i, diag_i);
+        for (int x = 0; x < duality_matrix->width; x++)
+        {
+          duality_matrix->values[diag_i][x] *= scale;
+        }
+      }
+
+      for (long long y = (diag_i - 1); y >= 0; y--)
+      {
+        if (duality_matrix->at(diag_i, y) != 0)
+        {
+          int scale = duality_matrix->at(diag_i, y);
+
+          for (std::size_t x = 0; x < duality_matrix->width; x++)
+          {
+            duality_matrix->values[y][x] -= (scale * duality_matrix->values[diag_i][x]);
+          }
+        }
+      }
+    }
+
+    for (std::size_t diag_i = 0; diag_i < duality_matrix->height; diag_i++)
+    {
+      {
+        int scale = duality_matrix->at(diag_i, diag_i);
+        for (int x = 0; x < duality_matrix->width; x++)
+        {
+          duality_matrix->values[diag_i][x] *= scale;
+        }
+      }
+
+      for (std::size_t y = diag_i + 1; y < duality_matrix->height; y++)
+      {
+        if (duality_matrix->at(diag_i, y) != 0)
+        {
+          int scale = duality_matrix->at(diag_i, y);
+
+          for (std::size_t x = 0; x < duality_matrix->width; x++)
+          {
+            duality_matrix->values[y][x] -= (scale * duality_matrix->values[diag_i][x]);
+          }
+        }
+      }
+    }
+
+    return duality_matrix->at(duality_matrix->width - 1, duality_matrix->height - 1);
   }
 
   long long count_fewest_presses_to_configure_voltage(std::string_view manual_instructions)
