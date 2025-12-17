@@ -5,6 +5,7 @@
 #include <format>
 #include <numeric>
 #include <queue>
+#include <optional>
 #include <string_view>
 #include <sstream>
 #include <unordered_map>
@@ -297,15 +298,15 @@ namespace year2025::day10
   class Matrix
   {
   public:
-    std::vector<std::vector<int>> values;
-    std::size_t width;
-    std::size_t height;
+    std::vector<std::vector<T>> values;
+    const std::size_t width;
+    const std::size_t height;
 
     Matrix(std::size_t width, std::size_t height) : values(), width(width), height(height)
     {
       for (std::size_t y = 0; y < height; y++)
       {
-        this->values.emplace_back(std::vector<int>(width));
+        this->values.emplace_back(std::vector<T>(width));
       }
     }
 
@@ -335,7 +336,7 @@ namespace year2025::day10
     // Simplex
     // Since every coefficient is 1 (every button increments by 1), we can pre-calculate the transpose and duality matrix.
 
-    std::unique_ptr<Matrix<int>> duality_matrix = std::make_unique<Matrix<int>>(Matrix<int>(machine.voltages.size() + machine.wiring_schematics.size() + 2, machine.voltages.size() + machine.wiring_schematics.size() + 1));
+    std::unique_ptr<Matrix<float>> duality_matrix = std::make_unique<Matrix<float>>(Matrix<float>(machine.voltages.size() + machine.wiring_schematics.size() + 2, machine.wiring_schematics.size() + 1));
 
     for (std::size_t schematic_i = 0; schematic_i < machine.wiring_schematics.size(); schematic_i++)
     {
@@ -357,107 +358,69 @@ namespace year2025::day10
     }
     duality_matrix->emplace(duality_matrix->width - 2, duality_matrix->height - 1, 1);
 
-    // Sort diagonal
-    for (std::size_t diagonal_i = 0; diagonal_i < duality_matrix->height; diagonal_i++)
+    // Simple tableau
+    for (std::size_t voltage_i = 0; voltage_i < machine.voltages.size(); voltage_i++)
     {
-      std::vector<std::vector<int>>::iterator diagonal_iter = std::find_if(duality_matrix->values.begin() + diagonal_i, duality_matrix->values.end(), [diagonal_i](const std::vector<int> &v)
-                                                                           { return v[diagonal_i] == 1; });
-
-      if (diagonal_iter != duality_matrix->values.end())
+      // Find pivot column
+      // We only want to zero the slack variables.
+      std::optional<std::size_t> pivot_column_i = std::nullopt;
+      for (std::size_t col_i = 0; col_i < machine.voltages.size(); col_i++)
       {
-        std::iter_swap(duality_matrix->values.begin() + diagonal_i, diagonal_iter);
-      }
-      else
-      {
-        // We have to copy a previous row to make this work
-        std::vector<std::vector<int>>::iterator copy_diagonal_iter = std::find_if(duality_matrix->values.begin(), duality_matrix->values.begin() + diagonal_i - 1, [diagonal_i](const std::vector<int> &v)
-                                                                                  { return v[diagonal_i] == 1; });
-
-        if (copy_diagonal_iter != duality_matrix->values.end())
+        if ((duality_matrix->values[duality_matrix->height - 1][col_i] != 0))
         {
-          for (int x = 0; x < copy_diagonal_iter->size(); x++)
+          if ((pivot_column_i == std::nullopt) || (duality_matrix->values[duality_matrix->height - 1][*pivot_column_i] > duality_matrix->values[duality_matrix->height - 1][col_i]))
           {
-            duality_matrix->values[diagonal_i][x] += (*copy_diagonal_iter)[x];
+            pivot_column_i = col_i;
+          }
+        }
+      }
+
+      if (pivot_column_i)
+      {
+        // Find pivot element
+        std::optional<std::size_t> pivot_row_i = std::nullopt;
+        {
+          std::optional<float> pivot_quotient = std::nullopt;
+          for (std::size_t row_i = 0; row_i < duality_matrix->height - 1; row_i++)
+          {
+            float row_quotient = duality_matrix->values[row_i][duality_matrix->width - 1] / duality_matrix->values[row_i][*pivot_column_i];
+
+            if ((!std::isnan(row_quotient)) && (std::abs(row_quotient) != std::numeric_limits<float>::infinity()))
+            {
+              if ((pivot_row_i == std::nullopt) || (*pivot_quotient > row_quotient))
+              {
+                pivot_quotient = row_quotient;
+                pivot_row_i = row_i;
+              }
+            }
+          }
+        }
+
+        if (pivot_row_i)
+        {
+          // Pivot
+          for (std::size_t row_i = 0; row_i < duality_matrix->height; row_i++)
+          {
+            if (row_i != pivot_row_i)
+            {
+              float scale = duality_matrix->values[row_i][*pivot_column_i] / duality_matrix->values[*pivot_row_i][*pivot_column_i];
+
+              for (std::size_t x = 0; x < duality_matrix->width; x++)
+              {
+                duality_matrix->values[row_i][x] -= scale * duality_matrix->values[*pivot_row_i][x];
+              }
+            }
           }
         }
         else
         {
-          throw std::invalid_argument{"I can't find a good row"};
+          throw std::invalid_argument{"Cannot find pivot row"};
         }
       }
-    }
-
-    // Reduced row echelon
-    // Assuming the first diagonal is one. From the problem description.
-    for (std::size_t diag_i = 0; diag_i < machine.voltages.size(); diag_i++)
-    {
+      else
       {
-        int scale = duality_matrix->at(diag_i, diag_i);
-        for (int x = 0; x < duality_matrix->width; x++)
-        {
-          duality_matrix->values[diag_i][x] *= scale;
-        }
-      }
-
-      for (std::size_t y = diag_i + 1; y < machine.voltages.size(); y++)
-      {
-        if (duality_matrix->at(diag_i, y) != 0)
-        {
-          int scale = duality_matrix->at(diag_i, y);
-
-          for (std::size_t x = 0; x < duality_matrix->width; x++)
-          {
-            duality_matrix->values[y][x] -= (scale * duality_matrix->values[diag_i][x]);
-          }
-        }
-      }
-    }
-
-    for (long long diag_i = machine.voltages.size() - 1; diag_i >= 0; diag_i--)
-    {
-      {
-        int scale = duality_matrix->at(diag_i, diag_i);
-        for (int x = 0; x < duality_matrix->width; x++)
-        {
-          duality_matrix->values[diag_i][x] *= scale;
-        }
-      }
-
-      for (long long y = (diag_i - 1); y >= 0; y--)
-      {
-        if (duality_matrix->at(diag_i, y) != 0)
-        {
-          int scale = duality_matrix->at(diag_i, y);
-
-          for (std::size_t x = 0; x < duality_matrix->width; x++)
-          {
-            duality_matrix->values[y][x] -= (scale * duality_matrix->values[diag_i][x]);
-          }
-        }
-      }
-    }
-
-    for (std::size_t diag_i = 0; diag_i < duality_matrix->height; diag_i++)
-    {
-      {
-        int scale = duality_matrix->at(diag_i, diag_i);
-        for (int x = 0; x < duality_matrix->width; x++)
-        {
-          duality_matrix->values[diag_i][x] *= scale;
-        }
-      }
-
-      for (std::size_t y = diag_i + 1; y < duality_matrix->height; y++)
-      {
-        if (duality_matrix->at(diag_i, y) != 0)
-        {
-          int scale = duality_matrix->at(diag_i, y);
-
-          for (std::size_t x = 0; x < duality_matrix->width; x++)
-          {
-            duality_matrix->values[y][x] -= (scale * duality_matrix->values[diag_i][x]);
-          }
-        }
+        // Done searching
+        break;
       }
     }
 
