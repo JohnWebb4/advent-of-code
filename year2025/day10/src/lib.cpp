@@ -332,12 +332,10 @@ namespace year2025::day10
     }
   };
 
-  long long count_fewest_presses_to_configure_machine_voltage(const Machine &machine)
+  Matrix<float> convert_machine_to_simple_tableau(const Machine &machine)
   {
-    // Simplex
-    // Since every coefficient is 1 (every button increments by 1), we can pre-calculate the transpose and duality matrix.
-
-    std::unique_ptr<Matrix<float>> duality_matrix = std::make_unique<Matrix<float>>(Matrix<float>(machine.voltages.size() + machine.wiring_schematics.size() + 2, machine.wiring_schematics.size() + 1));
+    // Note: I am being a bity lazy and doing the simplex transpose along with the conversion.
+    Matrix<float> duality_matrix = Matrix<float>(machine.voltages.size() + machine.wiring_schematics.size() + 2, machine.wiring_schematics.size() + 1);
 
     for (std::size_t schematic_i = 0; schematic_i < machine.wiring_schematics.size(); schematic_i++)
     {
@@ -345,21 +343,25 @@ namespace year2025::day10
       {
         if (std::find(machine.wiring_schematics[schematic_i].wiring.begin(), machine.wiring_schematics[schematic_i].wiring.end(), y) != machine.wiring_schematics[schematic_i].wiring.end())
         {
-          duality_matrix->emplace(y, schematic_i, 1);
+          duality_matrix.emplace(y, schematic_i, 1);
         }
       }
 
-      duality_matrix->emplace(machine.voltages.size() + schematic_i, schematic_i, 1);
-      duality_matrix->emplace(duality_matrix->width - 1, schematic_i, 1);
+      duality_matrix.emplace(machine.voltages.size() + schematic_i, schematic_i, 1);
+      duality_matrix.emplace(duality_matrix.width - 1, schematic_i, 1);
     }
 
     for (std::size_t voltage_i = 0; voltage_i < machine.voltages.size(); voltage_i++)
     {
-      duality_matrix->emplace(voltage_i, duality_matrix->height - 1, -machine.voltages[voltage_i]);
+      duality_matrix.emplace(voltage_i, duality_matrix.height - 1, -machine.voltages[voltage_i]);
     }
-    duality_matrix->emplace(duality_matrix->width - 2, duality_matrix->height - 1, 1);
+    duality_matrix.emplace(duality_matrix.width - 2, duality_matrix.height - 1, 1);
 
-    // Simple tableau
+    return duality_matrix;
+  }
+
+  void solve_simplex(Matrix<float> *duality_matrix)
+  {
     std::vector<std::unordered_set<int>> has_tried{};
     for (int i = 0; i < duality_matrix->width; i++)
     {
@@ -455,8 +457,32 @@ namespace year2025::day10
         throw std::invalid_argument{"Negative button presses"};
       }
     }
+  }
 
-    return duality_matrix->at(duality_matrix->width - 1, duality_matrix->height - 1);
+  long long solve_branch_and_bound_simplex(Matrix<float> *duality_matrix)
+  {
+    try
+    {
+      // Guaranteed to exist outside of simplex lifetime
+      solve_simplex(duality_matrix);
+
+      return duality_matrix->at(duality_matrix->width - 1, duality_matrix->height - 1);
+    }
+    catch (std::exception e)
+    {
+      // Branch and bound
+      std::cout << "Uh oh" << std::endl;
+      return 0;
+    }
+
+    return 0;
+  }
+
+  long long count_fewest_presses_to_configure_machine_voltage(const Machine &machine)
+  {
+    std::unique_ptr<Matrix<float>> duality_matrix = std::make_unique<Matrix<float>>(convert_machine_to_simple_tableau(machine));
+
+    return solve_branch_and_bound_simplex(duality_matrix.get());
   }
 
   long long count_fewest_presses_to_configure_voltage(std::string_view manual_instructions)
