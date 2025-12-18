@@ -359,11 +359,25 @@ namespace year2025::day10
     duality_matrix->emplace(duality_matrix->width - 2, duality_matrix->height - 1, 1);
 
     // Simple tableau
-    for (std::size_t voltage_i = 0; voltage_i < machine.voltages.size(); voltage_i++)
+    std::vector<std::vector<int>> has_tried{};
+    for (int i = 0; i < machine.voltages.size(); i++)
     {
+      has_tried.emplace_back(std::vector<int>{});
+    }
+
+    int count_i = 0;
+    while (true)
+    {
+      if (machine.voltages[0] == 30 && machine.voltages[1] == 36 && machine.voltages[2] == 24 && count_i == 9)
+      {
+        int hi = 0;
+      }
+      count_i++;
+
       // Find pivot column
       // We only want to zero the slack variables.
-      std::optional<std::size_t> pivot_column_i = std::nullopt;
+      std::optional<std::size_t>
+          pivot_column_i = std::nullopt;
       for (std::size_t col_i = 0; col_i < machine.voltages.size(); col_i++)
       {
         if ((duality_matrix->values[duality_matrix->height - 1][col_i] != 0))
@@ -391,6 +405,18 @@ namespace year2025::day10
               {
                 pivot_quotient = row_quotient;
                 pivot_row_i = row_i;
+                has_tried[*pivot_column_i].emplace_back(row_i);
+              }
+              else if (*pivot_quotient == row_quotient)
+              {
+                // If I've tried the current pivot already and a new solution is available
+                if ((std::find(has_tried[*pivot_column_i].begin(), has_tried[*pivot_column_i].end(), pivot_row_i) != has_tried[*pivot_column_i].end()) &&
+                    ((std::find(has_tried[*pivot_column_i].begin(), has_tried[*pivot_column_i].end(), row_i) == has_tried[*pivot_column_i].end())))
+                {
+                  pivot_quotient = row_quotient;
+                  pivot_row_i = row_i;
+                  has_tried[*pivot_column_i].emplace_back(row_i);
+                }
               }
             }
           }
@@ -421,6 +447,20 @@ namespace year2025::day10
       {
         // Done searching
         break;
+      }
+    }
+
+    // Validate
+    for (std::size_t x = 0; x < duality_matrix->width; x++)
+    {
+      if (std::ceilf(duality_matrix->at(x, duality_matrix->height - 1)) != duality_matrix->at(x, duality_matrix->height - 1))
+      {
+        throw std::invalid_argument{"Fractional solution"};
+      }
+
+      if (duality_matrix->at(x, duality_matrix->height - 1) < 0)
+      {
+        // throw std::invalid_argument{"Negative button presses"};
       }
     }
 
