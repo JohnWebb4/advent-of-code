@@ -9,6 +9,7 @@
 #include <string_view>
 #include <sstream>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include <iostream>
@@ -359,28 +360,24 @@ namespace year2025::day10
     duality_matrix->emplace(duality_matrix->width - 2, duality_matrix->height - 1, 1);
 
     // Simple tableau
-    std::vector<std::vector<int>> has_tried{};
-    for (int i = 0; i < machine.voltages.size(); i++)
+    std::vector<std::unordered_set<int>> has_tried{};
+    for (int i = 0; i < duality_matrix->width; i++)
     {
-      has_tried.emplace_back(std::vector<int>{});
+      has_tried.emplace_back(std::unordered_set<int>{});
     }
 
     int count_i = 0;
     while (true)
     {
-      if (machine.voltages[0] == 30 && machine.voltages[1] == 36 && machine.voltages[2] == 24 && count_i == 9)
-      {
-        int hi = 0;
-      }
       count_i++;
 
       // Find pivot column
       // We only want to zero the slack variables.
       std::optional<std::size_t>
           pivot_column_i = std::nullopt;
-      for (std::size_t col_i = 0; col_i < machine.voltages.size(); col_i++)
+      for (std::size_t col_i = 0; col_i < duality_matrix->width; col_i++)
       {
-        if ((duality_matrix->values[duality_matrix->height - 1][col_i] != 0))
+        if ((duality_matrix->values[duality_matrix->height - 1][col_i] < 0))
         {
           if ((pivot_column_i == std::nullopt) || (duality_matrix->values[duality_matrix->height - 1][*pivot_column_i] > duality_matrix->values[duality_matrix->height - 1][col_i]))
           {
@@ -401,21 +398,13 @@ namespace year2025::day10
 
             if ((!std::isnan(row_quotient)) && (std::abs(row_quotient) != std::numeric_limits<float>::infinity()))
             {
-              if ((pivot_row_i == std::nullopt) || (*pivot_quotient > row_quotient))
+              if (!has_tried[*pivot_column_i].contains(row_i))
               {
-                pivot_quotient = row_quotient;
-                pivot_row_i = row_i;
-                has_tried[*pivot_column_i].emplace_back(row_i);
-              }
-              else if (*pivot_quotient == row_quotient)
-              {
-                // If I've tried the current pivot already and a new solution is available
-                if ((std::find(has_tried[*pivot_column_i].begin(), has_tried[*pivot_column_i].end(), pivot_row_i) != has_tried[*pivot_column_i].end()) &&
-                    ((std::find(has_tried[*pivot_column_i].begin(), has_tried[*pivot_column_i].end(), row_i) == has_tried[*pivot_column_i].end())))
+                if ((pivot_row_i == std::nullopt) || (*pivot_quotient > row_quotient))
                 {
                   pivot_quotient = row_quotient;
                   pivot_row_i = row_i;
-                  has_tried[*pivot_column_i].emplace_back(row_i);
+                  has_tried[*pivot_column_i].emplace(row_i);
                 }
               }
             }
@@ -427,13 +416,16 @@ namespace year2025::day10
           // Pivot
           for (std::size_t row_i = 0; row_i < duality_matrix->height; row_i++)
           {
-            if (row_i != pivot_row_i)
+            if (row_i != *pivot_row_i)
             {
-              float scale = duality_matrix->values[row_i][*pivot_column_i] / duality_matrix->values[*pivot_row_i][*pivot_column_i];
-
-              for (std::size_t x = 0; x < duality_matrix->width; x++)
+              if (duality_matrix->values[row_i][*pivot_column_i] != 0)
               {
-                duality_matrix->values[row_i][x] -= scale * duality_matrix->values[*pivot_row_i][x];
+                float scale = duality_matrix->values[row_i][*pivot_column_i] / duality_matrix->values[*pivot_row_i][*pivot_column_i];
+
+                for (std::size_t x = 0; x < duality_matrix->width; x++)
+                {
+                  duality_matrix->values[row_i][x] -= scale * duality_matrix->values[*pivot_row_i][x];
+                }
               }
             }
           }
@@ -460,7 +452,7 @@ namespace year2025::day10
 
       if (duality_matrix->at(x, duality_matrix->height - 1) < 0)
       {
-        // throw std::invalid_argument{"Negative button presses"};
+        throw std::invalid_argument{"Negative button presses"};
       }
     }
 
