@@ -360,16 +360,6 @@ namespace year2025::day10
     return duality_matrix;
   }
 
-  template <typename T>
-  class Vector2
-  {
-  public:
-    T x;
-    T y;
-
-    Vector2(T x, T y) : x(x), y(y) {}
-  };
-
   std::optional<std::size_t> find_pivot_column(Matrix<float> &matrix)
   {
     // Find pivot column
@@ -389,28 +379,23 @@ namespace year2025::day10
     return pivot_column;
   }
 
-  Matrix<float> pivot(const Matrix<float> &matrix, std::size_t pivot_x, std::size_t pivot_y)
+  void pivot(Matrix<float> &matrix, std::size_t pivot_x, std::size_t pivot_y)
   {
-    Matrix<float> pivoted_matrix{matrix.width, matrix.height};
-    pivoted_matrix.values = matrix.values;
-
-    for (std::size_t row_i = 0; row_i < pivoted_matrix.height; row_i++)
+    for (std::size_t row_i = 0; row_i < matrix.height; row_i++)
     {
       if (row_i != pivot_y)
       {
-        if (pivoted_matrix.values[row_i][pivot_x] != 0)
+        if (matrix.values[row_i][pivot_x] != 0)
         {
-          float scale = pivoted_matrix.values[row_i][pivot_x] / pivoted_matrix.values[pivot_y][pivot_x];
+          float scale = matrix.values[row_i][pivot_x] / matrix.values[pivot_y][pivot_x];
 
-          for (std::size_t x = 0; x < pivoted_matrix.width; x++)
+          for (std::size_t x = 0; x < matrix.width; x++)
           {
-            pivoted_matrix.values[row_i][x] -= scale * pivoted_matrix.values[pivot_y][x];
+            matrix.values[row_i][x] -= scale * matrix.values[pivot_y][x];
           }
         }
       }
     }
-
-    return pivoted_matrix;
   }
 
   bool is_simplex_solved(Matrix<float> &matrix)
@@ -446,16 +431,37 @@ namespace year2025::day10
       count_i++;
 
       std::optional<std::size_t> pivot_column = find_pivot_column(duality_matrix);
+      std::optional<float> pivot_quotient = std::nullopt;
 
       if (pivot_column)
       {
+        std::optional<std::size_t> pivot_row = std::nullopt;
+
         for (std::size_t row_i = 0; row_i < duality_matrix.height - 1; row_i++)
         {
           float row_quotient = duality_matrix.values[row_i][duality_matrix.width - 1] / duality_matrix.values[row_i][*pivot_column];
 
           if ((!std::isnan(row_quotient)) && (std::abs(row_quotient) != std::numeric_limits<float>::infinity()))
           {
+            if ((pivot_quotient == std::nullopt) || (*pivot_quotient > row_quotient))
+            {
+              if (!has_tried[*pivot_column].contains(row_i))
+              {
+                pivot_row = row_i;
+                pivot_quotient = row_quotient;
+              }
+            }
           }
+        }
+
+        if (pivot_row)
+        {
+          day10::pivot(duality_matrix, *pivot_column, *pivot_row);
+          has_tried[*pivot_column].emplace(*pivot_row);
+        }
+        else
+        {
+          throw std::invalid_argument{"Cannot solve"};
         }
       }
       else
@@ -463,6 +469,7 @@ namespace year2025::day10
         // Done searching
         if (is_simplex_solved(duality_matrix))
         {
+          int hi = 0;
           return;
         }
         else
@@ -482,10 +489,10 @@ namespace year2025::day10
 
       return duality_matrix.at(duality_matrix.width - 1, duality_matrix.height - 1);
     }
-    catch (std::exception e)
+    catch (std::invalid_argument e)
     {
       // Branch and bound
-      std::cout << "Uh oh" << std::endl;
+      std::cout << "Uh oh: " << e.what() << std::endl;
       return 0;
     }
 
