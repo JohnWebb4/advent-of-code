@@ -1,5 +1,6 @@
 #include "lib.h"
 
+#include <algorithm>
 #include <charconv>
 #include <climits>
 #include <format>
@@ -300,8 +301,8 @@ namespace year2025::day10
   {
   public:
     std::vector<std::vector<T>> values;
-    const std::size_t width;
-    const std::size_t height;
+    std::size_t width;
+    std::size_t height;
 
     Matrix(std::size_t width, std::size_t height) : values(), width(width), height(height)
     {
@@ -311,12 +312,12 @@ namespace year2025::day10
       }
     }
 
-    const T &at(int x, int y) const
+    const T &at(std::size_t x, std::size_t y) const
     {
       return this->values[y][x];
     }
 
-    auto emplace(int x, int y, T value)
+    auto emplace(std::size_t x, std::size_t y, T value)
     {
       if (x >= this->width || x < 0)
       {
@@ -329,6 +330,22 @@ namespace year2025::day10
       }
 
       return this->values[y][x] = value;
+    }
+
+    std::string str() const
+    {
+      std::stringstream ss;
+
+      for (std::size_t y = 0; y < this->height; y++)
+      {
+        for (std::size_t x = 0; x < this->width; x++)
+        {
+          ss << this->at(x, y) << ',';
+        }
+        ss << '\n';
+      }
+
+      return ss.str();
     }
   };
 
@@ -389,26 +406,37 @@ namespace year2025::day10
         {
           float scale = matrix.values[row_i][pivot_x] / matrix.values[pivot_y][pivot_x];
 
-          for (std::size_t x = 0; x < matrix.width; x++)
+          if (std::ceilf(scale) == scale)
           {
-            matrix.values[row_i][x] -= scale * matrix.values[pivot_y][x];
+            for (std::size_t x = 0; x < matrix.width; x++)
+            {
+              matrix.values[row_i][x] -= scale * matrix.values[pivot_y][x];
+            }
           }
         }
       }
     }
   }
 
-  bool is_simplex_solved(Matrix<float> &matrix)
+  bool is_simplex_solved(const Matrix<float> &matrix)
   {
+    // The slack variables must be zero
+    std::size_t slack_size = matrix.width - matrix.height - 1;
+
     // Not fractional or negative values on the bottom row
     for (std::size_t x = 0; x < matrix.width; x++)
     {
-      if (std::ceilf(matrix.at(x, matrix.height - 1)) != matrix.at(x, matrix.height - 1))
+      float value = matrix.at(x, matrix.height - 1);
+
+      if (std::ceilf(value) != value)
       {
         return false;
       }
-
-      if (matrix.at(x, matrix.height - 1) < 0)
+      else if (value < 0)
+      {
+        return false;
+      }
+      else if ((x < slack_size) && (value != 0))
       {
         return false;
       }
@@ -480,23 +508,126 @@ namespace year2025::day10
     }
   }
 
+  template <typename T>
+  T get_num_button_presses(const Matrix<T> &matrix)
+  {
+    return matrix.at(matrix.width - 1, matrix.height - 1);
+  }
+
+  template <typename T>
+  std::string get_matrix_key(const Matrix<T> &matrix)
+  {
+    std::stringstream ss;
+
+    for (std::size_t x = 0; x < matrix.width - matrix.height - 1; x++)
+    {
+      // Rounding to three decimal places. Floating precission needs three decimal places and then down to two.
+      long long value = (matrix.at(x, matrix.height - 1) * 10000.0f) / 10.0f;
+      ss << (static_cast<float>(value) / 1000.0f) << ',';
+    }
+
+    return ss.str();
+  }
+
+  class BranchAndBoundSolution
+  {
+  public:
+    Matrix<float> matrix;
+    float num_button_presses;
+    int value;
+
+    BranchAndBoundSolution(const Matrix<float> &matrix, int value) : matrix(matrix), value(value)
+    {
+      num_button_presses = get_num_button_presses(matrix);
+    }
+  };
+
+  struct SortBranchAndBoundByValue
+  {
+    bool operator()(const BranchAndBoundSolution &l, const BranchAndBoundSolution &r) const { return l.value < r.value; }
+  } branch_and_bound_sort;
+
   long long solve_branch_and_bound_simplex(Matrix<float> &duality_matrix)
   {
-    try
-    {
-      // Guaranteed to exist outside of simplex lifetime
-      solve_simplex(duality_matrix);
+    std::priority_queue<BranchAndBoundSolution, std::vector<BranchAndBoundSolution>, SortBranchAndBoundByValue> branch_queue(branch_and_bound_sort);
 
-      return duality_matrix.at(duality_matrix.width - 1, duality_matrix.height - 1);
-    }
-    catch (std::invalid_argument e)
+    branch_queue.emplace(BranchAndBoundSolution(duality_matrix, 0));
+
+    std::unordered_map<std::string, int> button_state_path_map{};
+    std::optional<std::size_t> min_presses;
+
+    while (!branch_queue.empty())
     {
-      // Branch and bound
-      std::cout << "Uh oh: " << e.what() << std::endl;
-      return 0;
+      const BranchAndBoundSolution solution = branch_queue.top();
+      branch_queue.pop();
+
+      if (is_simplex_solved(solution.matrix))
+      {
+        if ((min_presses == std::nullopt) || (*min_presses > solution.num_button_presses))
+        {
+          std::cout << "Found solution" << std::endl;
+          std::cout << solution.matrix.str() << std::endl;
+          min_presses = solution.num_button_presses;
+        }
+      }
+      else if (!min_presses || ((*min_presses - 1) > solution.num_button_presses))
+      {
+        // For each bottom row
+        for (std::size_t pivot_column = 0; pivot_column < solution.matrix.width - 1; pivot_column++)
+        {
+          if (solution.matrix.at(pivot_column, solution.matrix.height - 1) < 0)
+          {
+            for (std::size_t pivot_row = 0; pivot_row < solution.matrix.height - 1; pivot_row++)
+            {
+              float row_quotient = solution.matrix.values[pivot_row][solution.matrix.width - 1] / solution.matrix.values[pivot_row][pivot_column];
+
+            if ((!std::isnan(row_quotient)) && (std::abs(row_quotient) != std::numeric_limits<float>::infinity()))
+            {
+              // Possible solution
+              Matrix<float> new_matrix = solution.matrix;
+              pivot(new_matrix, pivot_column, pivot_row);
+
+              std::string new_matrix_key = get_matrix_key(new_matrix);
+              float num_button_presses = get_num_button_presses(new_matrix);
+
+                if (!button_state_path_map.contains(new_matrix_key))
+                {
+                  float value{0.0f};
+                  for (int i = 0; i < new_matrix.width - 1; i++)
+                  {
+                    float cell = new_matrix.at(i, new_matrix.height - 1);
+                    if (cell < 0)
+                    {
+                      // Negative values need solving. Are a cost.
+                      value -= std::abs(cell);
+                    }
+                  }
+                  // Number of steps is a cost
+                  value -= num_button_presses;
+
+                  branch_queue.emplace(BranchAndBoundSolution(new_matrix, value));
+                  button_state_path_map.emplace(new_matrix_key, num_button_presses);
+                }
+                else if (button_state_path_map.at(new_matrix_key) > num_button_presses)
+                {
+                  button_state_path_map.erase(new_matrix_key);
+                  button_state_path_map.emplace(new_matrix_key, num_button_presses);
+                }
+              }
+            }
+          }
+        }
+      }
     }
 
-    return 0;
+    if (min_presses)
+    {
+      return *min_presses;
+    }
+    else
+    {
+      throw std::invalid_argument{"Failed to find solution"};
+    }
   }
 
   long long count_fewest_presses_to_configure_machine_voltage(const Machine &machine)
@@ -516,8 +647,15 @@ namespace year2025::day10
     std::size_t num_machines{0};
     for (Machine &machine : machines)
     {
+      if (num_machines == 23)
+      {
+        int hi = 0;
+      }
+
       std::cout << "Looking at machine " << num_machines << std::endl;
-      num_fewest_presses_to_configure += count_fewest_presses_to_configure_machine_voltage(machine);
+      long long num_presses = count_fewest_presses_to_configure_machine_voltage(machine);
+      std::cout << "Found solution in " << num_presses << std::endl;
+      num_fewest_presses_to_configure += num_presses;
       num_machines++;
     }
 

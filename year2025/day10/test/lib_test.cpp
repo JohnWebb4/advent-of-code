@@ -23,7 +23,9 @@ TEST(Year2025, Day10)
     EXPECT_EQ(year2025::day10::count_fewest_presses_to_configure_voltage(test_1), 33);
 
     // 13013 low
-    EXPECT_EQ(year2025::day10::count_fewest_presses_to_configure_voltage(input_stream.view()), 0);
+    // 14392
+    // 14076 low
+    // EXPECT_EQ(year2025::day10::count_fewest_presses_to_configure_voltage(input_stream.view()), 0);
 
     input_file.close();
 }
