@@ -60,5 +60,14 @@
         "set": "cpp",
         "span": "cpp",
         "unordered_set": "cpp"
-    }
+    },
+    "C_Cpp.files.exclude": {
+        "/": true,
+        "**/.vscode": true,
+        "**/.vs": true,
+        "**/.git": true
+    },
+    "C_Cpp.exclusionPolicy": "checkFilesAndFolders",
+    "C_Cpp.loggingLevel": "Debug",
+    "C_Cpp.workspaceParsingPriority": "low"
 }
