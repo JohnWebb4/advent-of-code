@@ -404,14 +404,12 @@ namespace year2025::day10
       {
         if (matrix.values[row_i][pivot_x] != 0)
         {
-          float scale = matrix.values[row_i][pivot_x] / matrix.values[pivot_y][pivot_x];
+          float scale_pivot = matrix.values[row_i][pivot_x];
+          float scale_row = matrix.values[pivot_y][pivot_x];
 
-          if (std::ceilf(scale) == scale)
+          for (std::size_t x = 0; x < matrix.width; x++)
           {
-            for (std::size_t x = 0; x < matrix.width; x++)
-            {
-              matrix.values[row_i][x] -= scale * matrix.values[pivot_y][x];
-            }
+            matrix.values[row_i][x] = (scale_row * matrix.values[row_i][x]) - (scale_pivot * matrix.values[pivot_y][x]);
           }
         }
       }
@@ -581,14 +579,14 @@ namespace year2025::day10
             {
               float row_quotient = solution.matrix.values[pivot_row][solution.matrix.width - 1] / solution.matrix.values[pivot_row][pivot_column];
 
-            if ((!std::isnan(row_quotient)) && (std::abs(row_quotient) != std::numeric_limits<float>::infinity()))
-            {
-              // Possible solution
-              Matrix<float> new_matrix = solution.matrix;
-              pivot(new_matrix, pivot_column, pivot_row);
+              if ((!std::isnan(row_quotient)) && (std::abs(row_quotient) != std::numeric_limits<float>::infinity()))
+              {
+                // Possible solution
+                Matrix<float> new_matrix = solution.matrix;
+                pivot(new_matrix, pivot_column, pivot_row);
 
-              std::string new_matrix_key = get_matrix_key(new_matrix);
-              float num_button_presses = get_num_button_presses(new_matrix);
+                std::string new_matrix_key = get_matrix_key(new_matrix);
+                float num_button_presses = get_num_button_presses(new_matrix);
 
                 if (!button_state_path_map.contains(new_matrix_key))
                 {
