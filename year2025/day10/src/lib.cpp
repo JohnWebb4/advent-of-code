@@ -1,6 +1,11 @@
 #include "lib.h"
 
+#include <memory>
+#include <numeric>
+#include <queue>
 #include <string_view>
+#include <sstream>
+#include <unordered_set>
 #include <vector>
 
 namespace year2025::day10
@@ -150,14 +155,97 @@ namespace year2025::day10
     return machines;
   }
 
-  long long
-  count_fewest_presses_to_configure(const std::string_view &manual_instructions)
+  class MachineSolution
+  {
+  public:
+    std::vector<long long> presses;
+    std::vector<bool> light_diaghram;
+
+    MachineSolution(const std::vector<long long> &presses, const std::vector<bool> &light_diaghram) : presses(presses), light_diaghram(light_diaghram) {}
+  };
+
+  const std::string get_presses_key(const std::vector<long long> &presses)
+  {
+    std::stringstream ss;
+
+    for (const long long &press : presses)
+    {
+      ss << press << ',';
+    }
+
+    return ss.str();
+  }
+
+  long long counter_fewest_presses_to_configure_machine(const Machine &machine)
+  {
+    std::queue<MachineSolution> solution_queue{};
+    const std::vector<long long> initial_presses(machine.button_wiring.size());
+    const std::vector<bool> initial_light_diaghram(machine.light_diaghram.size());
+    solution_queue.emplace(MachineSolution(initial_presses, initial_light_diaghram));
+
+    std::optional<long long> min_presses_to_configure{};
+    std::unordered_set<std::string> has_seen_presses{};
+
+    while (!solution_queue.empty())
+    {
+      std::unique_ptr<MachineSolution> solution = std::make_unique<MachineSolution>(solution_queue.front());
+      solution_queue.pop();
+
+      long long num_presses = std::reduce(solution->presses.begin(), solution->presses.end());
+
+      if (!min_presses_to_configure || (num_presses < *min_presses_to_configure))
+      {
+        if (solution->light_diaghram == machine.light_diaghram)
+        {
+          min_presses_to_configure = num_presses;
+        }
+        else if (!min_presses_to_configure || (num_presses < *min_presses_to_configure - 1))
+        {
+          for (std::size_t button_i = 0; button_i < machine.button_wiring.size(); button_i++)
+          {
+            std::vector<long long> next_presses = solution->presses;
+            next_presses.at(button_i)++;
+
+            std::string next_presses_key = get_presses_key(next_presses);
+
+            if (!has_seen_presses.contains(next_presses_key))
+            {
+              std::vector<bool> next_light_diaghram = solution->light_diaghram;
+              for (const std::size_t &diaghram_index : machine.button_wiring.at(button_i))
+              {
+                next_light_diaghram.at(diaghram_index) = !next_light_diaghram.at(diaghram_index);
+              }
+
+              solution_queue.emplace(MachineSolution(next_presses, next_light_diaghram));
+              has_seen_presses.emplace(next_presses_key);
+            }
+          }
+        }
+      }
+    }
+
+    if (min_presses_to_configure)
+    {
+      return *min_presses_to_configure;
+    }
+    else
+    {
+      throw std::invalid_argument{"Failed to find solution"};
+    }
+  }
+
+  long long count_fewest_presses_to_configure(const std::string_view &manual_instructions)
   {
     const std::vector<Machine> machines = parse_machines(manual_instructions);
 
-    int hi = 0;
+    long long num_presses_to_configure{0};
 
-    return -1;
+    for (const Machine &machine : machines)
+    {
+      num_presses_to_configure += counter_fewest_presses_to_configure_machine(machine);
+    }
+
+    return num_presses_to_configure;
   }
 
   long long count_fewest_presses_to_configure_voltage(const std::string_view &manual_instructions)
