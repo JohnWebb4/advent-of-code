@@ -68,6 +68,6 @@
         "**/.git": true
     },
     "C_Cpp.exclusionPolicy": "checkFilesAndFolders",
-    "C_Cpp.loggingLevel": "Debug",
+    // "C_Cpp.loggingLevel": "Debug",
     "C_Cpp.workspaceParsingPriority": "low"
 }
