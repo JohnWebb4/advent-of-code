@@ -248,10 +248,90 @@ namespace year2025::day10
     return num_presses_to_configure;
   }
 
-  long long count_fewest_presses_to_configure_voltage(const std::string_view &manual_instructions)
+  long long counter_fewest_presses_to_configure_voltage(const Machine &machine)
   {
+    std::vector<std::vector<long long>> matrix{};
+
+    for (std::size_t button_i = 0; button_i < machine.button_wiring.size(); button_i++)
+    {
+      std::vector<long long>
+          row(machine.voltages.size() + machine.button_wiring.size() + 1);
+      for (const long long &counter_i : machine.button_wiring.at(button_i))
+      {
+        row.at(counter_i) = 1;
+      }
+      row.at(machine.voltages.size() + button_i) = 1;
+      row.at(row.size() - 1) = 1;
+
+      matrix.emplace_back(row);
+    }
+
+    std::vector<long long> cost_row(machine.voltages.size() + machine.button_wiring.size() + 1);
+    for (std::size_t voltage_i = 0; voltage_i < machine.voltages.size(); voltage_i++)
+    {
+      cost_row.at(voltage_i) = -machine.voltages.at(voltage_i);
+    }
+    matrix.emplace_back(cost_row);
+
+    std::size_t width{matrix.at(0).size()};
+    std::size_t height{matrix.size()};
+
+    // Gaussian elimination
+    for (std::size_t y = 0; y < std::min(height, width) - 1; y++)
+    {
+      if (matrix.at(y).at(y) == 0)
+      {
+        // Need to swap row
+        bool can_swap = false;
+        for (std::size_t new_y = y + 1; new_y < height - 1; new_y++)
+        {
+          if (matrix.at(new_y).at(y) != 0)
+          {
+            std::iter_swap(matrix.begin() + y, matrix.begin() + new_y);
+            can_swap = true;
+            break;
+          }
+        }
+
+        if (!can_swap)
+        {
+          throw std::invalid_argument{std::format("Failed to swap rows: ", y)};
+        }
+      }
+
+      // Reduce rows below
+      for (std::size_t reduce_y = y + 1; reduce_y < height; reduce_y++)
+      {
+        if (matrix.at(reduce_y).at(y) != 0)
+        {
+          long long scale_y = matrix.at(reduce_y).at(y);
+          long long scale_reduce = matrix.at(y).at(y);
+
+          for (std::size_t x = 0; x < width; x++)
+          {
+            matrix.at(reduce_y).at(x) = (scale_reduce * matrix.at(reduce_y).at(x)) - (scale_y * matrix.at(y).at(x));
+          }
+
+          int hi = 0;
+        }
+      }
+    }
 
     return -1;
+  }
+
+  long long count_fewest_presses_to_configure_voltage(const std::string_view &manual_instructions)
+  {
+    const std::vector<Machine> machines = parse_machines(manual_instructions);
+
+    long long num_presses_to_configure{0};
+
+    for (const Machine &machine : machines)
+    {
+      num_presses_to_configure += counter_fewest_presses_to_configure_voltage(machine);
+    }
+
+    return num_presses_to_configure;
   }
 
 } // year2025::day10
