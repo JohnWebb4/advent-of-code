@@ -8,6 +8,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include <iostream>
+
 namespace year2025::day10
 {
   class Machine
@@ -273,51 +275,81 @@ namespace year2025::day10
     }
     matrix.emplace_back(cost_row);
 
-    std::size_t width{matrix.at(0).size()};
-    std::size_t height{matrix.size()};
+    const std::size_t width{matrix.at(0).size()};
+    const std::size_t height{matrix.size()};
 
-    // Gaussian elimination
-    for (std::size_t y = 0; y < std::min(height, width) - 1; y++)
+    while (true)
     {
-      if (matrix.at(y).at(y) == 0)
-      {
-        // Need to swap row
-        bool can_swap = false;
-        for (std::size_t new_y = y + 1; new_y < height - 1; new_y++)
-        {
-          if (matrix.at(new_y).at(y) != 0)
-          {
-            std::iter_swap(matrix.begin() + y, matrix.begin() + new_y);
-            can_swap = true;
-            break;
-          }
-        }
+      // Find pivot column
+      std::optional<std::size_t> pivot_column;
 
-        if (!can_swap)
+      for (std::size_t x = 0; x < matrix.at(height - 1).size(); x++)
+      {
+        if (matrix.at(height - 1).at(x) < 0)
         {
-          throw std::invalid_argument{std::format("Failed to swap rows: ", y)};
+          if (!pivot_column || (matrix.at(height - 1).at(x) < matrix.at(height - 1).at(*pivot_column)))
+          {
+            pivot_column = x;
+          }
         }
       }
 
-      // Reduce rows below
-      for (std::size_t reduce_y = y + 1; reduce_y < height; reduce_y++)
+      if (pivot_column)
       {
-        if (matrix.at(reduce_y).at(y) != 0)
+        std::optional<std::size_t> pivot_row;
+        std::optional<float> pivot_quotient;
+        for (std::size_t y = 0; y < height - 1; y++)
         {
-          long long scale_y = matrix.at(reduce_y).at(y);
-          long long scale_reduce = matrix.at(y).at(y);
+          float quotient = static_cast<float>(matrix.at(y).at(width - 1)) / static_cast<float>(matrix.at(y).at(*pivot_column));
 
-          for (std::size_t x = 0; x < width; x++)
+          if (!isnan(quotient) && !isinf(abs(quotient)))
           {
-            matrix.at(reduce_y).at(x) = (scale_reduce * matrix.at(reduce_y).at(x)) - (scale_y * matrix.at(y).at(x));
+            if (!pivot_quotient || (quotient < pivot_quotient))
+            {
+              pivot_quotient = quotient;
+              pivot_row = y;
+            }
           }
-
-          int hi = 0;
         }
+
+        if (pivot_row)
+        {
+          // Scale every row
+          for (std::size_t y = 0; y < height; y++)
+          {
+            if ((y != *pivot_row) && (matrix.at(y).at(*pivot_column) != 0))
+            {
+              long long pivot_scale = matrix.at(y).at(*pivot_column);
+              long long row_scale = matrix.at(*pivot_row).at(*pivot_column);
+
+              for (std::size_t x = 0; x < width; x++)
+              {
+                matrix.at(y).at(x) = (row_scale * matrix.at(y).at(x)) - (pivot_scale * matrix.at(*pivot_row).at(x));
+              }
+            }
+          }
+        }
+        else
+        {
+          // Can't solve
+          break;
+        }
+      }
+      else
+      {
+        // Done solving
+        break;
       }
     }
 
-    return -1;
+    if (std::any_of(matrix.at(height - 1).begin(), matrix.at(height - 1).end(), [](const long long &v)
+                    { return v < 0; }))
+    {
+      // Still needs solving
+      int hi = 0;
+    }
+
+    return matrix.at(height - 1).at(width - 1);
   }
 
   long long count_fewest_presses_to_configure_voltage(const std::string_view &manual_instructions)
@@ -326,9 +358,13 @@ namespace year2025::day10
 
     long long num_presses_to_configure{0};
 
-    for (const Machine &machine : machines)
+    std::cout << "Starting" << std::endl;
+
+    for (std::size_t machine_i = 0; machine_i < machines.size(); machine_i++)
     {
-      num_presses_to_configure += counter_fewest_presses_to_configure_voltage(machine);
+      std::cout << std::format("Solving matrix: {}", machine_i) << std::endl;
+
+      num_presses_to_configure += counter_fewest_presses_to_configure_voltage(machines.at(machine_i));
     }
 
     return num_presses_to_configure;
