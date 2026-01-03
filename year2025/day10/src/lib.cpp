@@ -3,6 +3,7 @@
 #include <memory>
 #include <numeric>
 #include <queue>
+#include <stack>
 #include <string_view>
 #include <sstream>
 #include <unordered_set>
@@ -250,6 +251,10 @@ namespace year2025::day10
     return num_presses_to_configure;
   }
 
+  class VoltageSolution
+  {
+  };
+
   long long counter_fewest_presses_to_configure_voltage(const Machine &machine)
   {
     std::vector<std::vector<long long>> matrix{};
@@ -257,26 +262,32 @@ namespace year2025::day10
     for (std::size_t button_i = 0; button_i < machine.button_wiring.size(); button_i++)
     {
       std::vector<long long>
-          row(machine.voltages.size() + machine.button_wiring.size() + 1);
+          row(2 * machine.voltages.size() + machine.button_wiring.size() + 1);
       for (const long long &counter_i : machine.button_wiring.at(button_i))
       {
-        row.at(counter_i) = 1;
+        row.at(2 * counter_i) = 1;
+        row.at(2 * counter_i + 1) = -1;
       }
-      row.at(machine.voltages.size() + button_i) = 1;
+      row.at(2 * machine.voltages.size() + button_i) = 1;
       row.at(row.size() - 1) = 1;
 
       matrix.emplace_back(row);
     }
 
-    std::vector<long long> cost_row(machine.voltages.size() + machine.button_wiring.size() + 1);
+    std::vector<long long> cost_row(2 * machine.voltages.size() + machine.button_wiring.size() + 1);
     for (std::size_t voltage_i = 0; voltage_i < machine.voltages.size(); voltage_i++)
     {
-      cost_row.at(voltage_i) = -machine.voltages.at(voltage_i);
+      cost_row.at(2 * voltage_i) = -machine.voltages.at(voltage_i);
+      cost_row.at(2 * voltage_i + 1) = machine.voltages.at(voltage_i);
     }
     matrix.emplace_back(cost_row);
 
-    const std::size_t width{matrix.at(0).size()};
+    std::stack<VoltageSolution>
+
+        const std::size_t width{matrix.at(0).size()};
     const std::size_t height{matrix.size()};
+
+    int hi_1 = 0;
 
     while (true)
     {
@@ -346,8 +357,10 @@ namespace year2025::day10
                     { return v < 0; }))
     {
       // Still needs solving
-      int hi = 0;
+      int hi_2 = 0;
     }
+
+    int hi_3 = 0;
 
     return matrix.at(height - 1).at(width - 1);
   }
