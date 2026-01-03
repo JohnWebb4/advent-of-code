@@ -335,7 +335,7 @@ namespace year2025::day10
     return pivoted_matrix;
   }
 
-  const std::size_t MAX_VOLTAGE_SOLUTIONS_TO_CHECK = 5000;
+  const std::size_t MAX_VOLTAGE_SOLUTION_ITERATIONS = 100000;
 
   long long counter_fewest_presses_to_configure_voltage(const Machine &machine)
   {
@@ -343,86 +343,91 @@ namespace year2025::day10
     std::stack<VoltageSolution> solution_stack{};
     solution_stack.emplace(VoltageSolution(get_simplex_matrix_from_machine(machine), std::vector<Pivot>{}));
     std::optional<long long> min_presses_to_configure{};
-    std::size_t num_solutions_found = 0;
 
-    while (!solution_stack.empty() && num_solutions_found < day10::MAX_VOLTAGE_SOLUTIONS_TO_CHECK)
+    long long num_iterations = 0;
+    while (!solution_stack.empty() && num_iterations < day10::MAX_VOLTAGE_SOLUTION_ITERATIONS)
     {
       const VoltageSolution solution = solution_stack.top();
       solution_stack.pop();
       const std::size_t width = solution.matrix.at(0).size();
       const std::size_t height = solution.matrix.size();
 
-      if (std::all_of(solution.matrix.at(height - 1).begin(), solution.matrix.at(height - 1).end(), [](const long long &v)
-                      { return v >= 0; }))
+      if (num_iterations % (day10::MAX_VOLTAGE_SOLUTION_ITERATIONS / 10) == 0)
       {
-        // Done solving
-        if (!min_presses_to_configure || (min_presses_to_configure > solution.matrix.at(height - 1).at(width - 1)))
+        std::cout << "...thinking..." << solution_stack.size() << std::endl;
+      }
+      num_iterations++;
+
+      if (!min_presses_to_configure || (solution.matrix.at(height - 1).at(width - 1) < *min_presses_to_configure))
+      {
+        if (std::all_of(solution.matrix.at(height - 1).begin(), solution.matrix.at(height - 1).end(), [](const long long &v)
+                        { return v >= 0; }))
         {
+          // Done solving
           std::cout << std::format("Found solution in {} presses. Stack size {}", solution.matrix.at(height - 1).at(width - 1), solution_stack.size()) << std::endl;
           min_presses_to_configure = solution.matrix.at(height - 1).at(width - 1);
         }
-        num_solutions_found++;
-      }
-      else
-      {
-        // Find pivot column
-        const auto compare_columns = [](const WeightedIndex &column1, const WeightedIndex &column2)
+        else if (!min_presses_to_configure || (solution.matrix.at(height - 1).at(width - 1) < (*min_presses_to_configure - 1)))
         {
-          return column1.weight < column2.weight;
-        };
-        std::priority_queue<WeightedIndex, std::vector<WeightedIndex>, decltype(compare_columns)> pivot_columns{compare_columns};
-
-        for (std::size_t x = 0; x < solution.matrix.at(height - 1).size(); x++)
-        {
-          if (solution.matrix.at(height - 1).at(x) < 0)
+          // Find pivot column
+          const auto compare_columns = [](const WeightedIndex &column1, const WeightedIndex &column2)
           {
-            pivot_columns.emplace(WeightedIndex(x, solution.matrix.at(height - 1).at(x)));
-          }
-        }
-
-        while (!pivot_columns.empty())
-        {
-          const WeightedIndex &pivot_column = pivot_columns.top();
-          const auto compare_rows = [](const WeightedIndex &row1, const WeightedIndex &row2)
-          {
-            return row1.weight < row2.weight;
+            return column1.weight < column2.weight;
           };
-          std::priority_queue<WeightedIndex, std::vector<WeightedIndex>, decltype(compare_rows)> pivot_rows{compare_rows};
-          for (std::size_t y = 0; y < height - 1; y++)
+          std::priority_queue<WeightedIndex, std::vector<WeightedIndex>, decltype(compare_columns)> pivot_columns{compare_columns};
+
+          for (std::size_t x = 0; x < solution.matrix.at(height - 1).size(); x++)
           {
-            float quotient = static_cast<float>(solution.matrix.at(y).at(width - 1)) / static_cast<float>(solution.matrix.at(y).at(pivot_column.index));
-            // A quotient that is a zero, or a negative number, or that has a zero in the denominator, is ignored.
-            // Quoting: https://math.libretexts.org/Bookshelves/Applied_Mathematics/Applied_Finite_Mathematics_(Sekhon_and_Bloom)/04%3A_Linear_Programming_The_Simplex_Method/4.02%3A_Maximization_By_The_Simplex_Method
-            if (quotient != 0 && quotient > 0 && !isnan(quotient) && !isinf(abs(quotient)))
+            if (solution.matrix.at(height - 1).at(x) < 0)
             {
-              pivot_rows.emplace(WeightedIndex(y, quotient));
+              pivot_columns.emplace(WeightedIndex(x, solution.matrix.at(height - 1).at(x)));
             }
           }
 
-          while (!pivot_rows.empty())
+          while (!pivot_columns.empty())
           {
-            const WeightedIndex &pivot_row = pivot_rows.top();
-
-            // Do not attempt to pivot the same cell twice
-            if (!std::any_of(solution.visited_pivots.begin(), solution.visited_pivots.end(), [&pivot_column, &pivot_row](const Pivot &pivot)
-                             { return pivot.column == pivot_column.index && pivot.row == pivot_row.index; }))
+            const WeightedIndex &pivot_column = pivot_columns.top();
+            const auto compare_rows = [](const WeightedIndex &row1, const WeightedIndex &row2)
             {
-              // Pivot
-              std::optional<std::vector<std::vector<long long>>> next_matrix = pivot(solution.matrix, pivot_column.index, pivot_row.index);
-
-              if (next_matrix)
+              return row1.weight < row2.weight;
+            };
+            std::priority_queue<WeightedIndex, std::vector<WeightedIndex>, decltype(compare_rows)> pivot_rows{compare_rows};
+            for (std::size_t y = 0; y < height - 1; y++)
+            {
+              float quotient = static_cast<float>(solution.matrix.at(y).at(width - 1)) / static_cast<float>(solution.matrix.at(y).at(pivot_column.index));
+              // A quotient that is a zero, or a negative number, or that has a zero in the denominator, is ignored.
+              // Quoting: https://math.libretexts.org/Bookshelves/Applied_Mathematics/Applied_Finite_Mathematics_(Sekhon_and_Bloom)/04%3A_Linear_Programming_The_Simplex_Method/4.02%3A_Maximization_By_The_Simplex_Method
+              if (quotient != 0 && quotient > 0 && !isnan(quotient) && !isinf(abs(quotient)))
               {
-                std::vector<Pivot> next_visited_pivots = solution.visited_pivots;
-                next_visited_pivots.emplace_back(Pivot(pivot_column.index, pivot_row.index));
-
-                solution_stack.emplace(VoltageSolution(*next_matrix, next_visited_pivots));
+                pivot_rows.emplace(WeightedIndex(y, quotient));
               }
             }
 
-            pivot_rows.pop();
-          }
+            while (!pivot_rows.empty())
+            {
+              const WeightedIndex &pivot_row = pivot_rows.top();
 
-          pivot_columns.pop();
+              // Do not attempt to pivot the same cell twice
+              if (!std::any_of(solution.visited_pivots.begin(), solution.visited_pivots.end(), [&pivot_column, &pivot_row](const Pivot &pivot)
+                               { return pivot.column == pivot_column.index && pivot.row == pivot_row.index; }))
+              {
+                // Pivot
+                std::optional<std::vector<std::vector<long long>>> next_matrix = pivot(solution.matrix, pivot_column.index, pivot_row.index);
+
+                if (next_matrix)
+                {
+                  std::vector<Pivot> next_visited_pivots = solution.visited_pivots;
+                  next_visited_pivots.emplace_back(Pivot(pivot_column.index, pivot_row.index));
+
+                  solution_stack.emplace(VoltageSolution(*next_matrix, next_visited_pivots));
+                }
+              }
+
+              pivot_rows.pop();
+            }
+
+            pivot_columns.pop();
+          }
         }
       }
     }
