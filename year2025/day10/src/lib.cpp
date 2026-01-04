@@ -1,7 +1,9 @@
 #include "lib.h"
 
+#include <format>
 #include <memory>
 #include <numeric>
+#include <optional>
 #include <queue>
 #include <stack>
 #include <string_view>
@@ -316,8 +318,10 @@ namespace year2025::day10
     {
       if ((y != pivot_row) && (pivoted_matrix.at(y).at(pivot_column) != 0))
       {
-        long long pivot_scale = pivoted_matrix.at(y).at(pivot_column);
-        long long row_scale = pivoted_matrix.at(pivot_row).at(pivot_column);
+        long long row_scale = std::abs(pivoted_matrix.at(pivot_row).at(pivot_column));
+        long long factor = row_scale * pivoted_matrix.at(y).at(pivot_column);
+
+        long long pivot_scale = factor / pivoted_matrix.at(pivot_row).at(pivot_column);
 
         // Short circuit
         if (std::abs(pivot_scale) > day10::MAX_PIVOT_SCALE || std::abs(row_scale) > day10::MAX_PIVOT_SCALE)
