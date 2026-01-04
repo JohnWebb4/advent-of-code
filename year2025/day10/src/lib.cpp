@@ -339,6 +339,23 @@ namespace year2025::day10
     return pivoted_matrix;
   }
 
+  std::string convert_matrix_to_str(const std::vector<std::vector<long long>> &matrix)
+  {
+    std::stringstream ss;
+
+    for (const std::vector<long long> &row : matrix)
+    {
+      for (const long long &v : row)
+      {
+        ss << v << ',';
+      }
+
+      ss << std::endl;
+    }
+
+    return ss.str();
+  }
+
   const std::size_t MAX_VOLTAGE_SOLUTION_ITERATIONS = 100000;
 
   long long counter_fewest_presses_to_configure_voltage(const Machine &machine)
@@ -347,6 +364,8 @@ namespace year2025::day10
     std::stack<VoltageSolution> solution_stack{};
     solution_stack.emplace(VoltageSolution(get_simplex_matrix_from_machine(machine), std::vector<Pivot>{}));
     std::optional<long long> min_presses_to_configure{};
+    std::unordered_set<std::string> has_seen{};
+    has_seen.emplace(convert_matrix_to_str(solution_stack.top().matrix));
 
     long long num_iterations = 0;
     while (!solution_stack.empty() && num_iterations < day10::MAX_VOLTAGE_SOLUTION_ITERATIONS)
@@ -420,10 +439,15 @@ namespace year2025::day10
 
                 if (next_matrix)
                 {
-                  std::vector<Pivot> next_visited_pivots = solution.visited_pivots;
-                  next_visited_pivots.emplace_back(Pivot(pivot_column.index, pivot_row.index));
+                  std::string next_matrix_key = convert_matrix_to_str(*next_matrix);
+                  if (!has_seen.contains(next_matrix_key))
+                  {
+                    std::vector<Pivot> next_visited_pivots = solution.visited_pivots;
+                    next_visited_pivots.emplace_back(Pivot(pivot_column.index, pivot_row.index));
 
-                  solution_stack.emplace(VoltageSolution(*next_matrix, next_visited_pivots));
+                    solution_stack.emplace(VoltageSolution(*next_matrix, next_visited_pivots));
+                    has_seen.emplace(next_matrix_key);
+                  }
                 }
               }
 
