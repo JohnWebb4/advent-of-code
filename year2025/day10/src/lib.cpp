@@ -310,8 +310,7 @@ namespace year2025::day10
     return matrix;
   }
 
-  const std::size_t MAX_PIVOT_SCALE = 1000;
-  std::optional<std::vector<std::vector<long long>>> pivot(const std::vector<std::vector<long long>> &matrix, const std::size_t pivot_column, const std::size_t pivot_row)
+  std::vector<std::vector<long long>> pivot(const std::vector<std::vector<long long>> &matrix, const std::size_t pivot_column, const std::size_t pivot_row)
   {
     std::vector<std::vector<long long>> pivoted_matrix = matrix;
     for (std::size_t y = 0; y < matrix.size(); y++)
@@ -322,12 +321,6 @@ namespace year2025::day10
         long long factor = row_scale * pivoted_matrix.at(y).at(pivot_column);
 
         long long pivot_scale = factor / pivoted_matrix.at(pivot_row).at(pivot_column);
-
-        // Short circuit
-        if (std::abs(pivot_scale) > day10::MAX_PIVOT_SCALE || std::abs(row_scale) > day10::MAX_PIVOT_SCALE)
-        {
-          return std::nullopt;
-        }
 
         for (std::size_t x = 0; x < matrix.at(y).size(); x++)
         {
@@ -360,7 +353,20 @@ namespace year2025::day10
 
   long long counter_fewest_presses_to_configure_voltage(const Machine &machine)
   {
-    // Brand and bound DFS
+    // Bound
+    std::vector<long long> max_button_presses{};
+    for (std::size_t button_i = 0; button_i < machine.button_wiring.size(); button_i++)
+    {
+      long long max_presses = machine.voltages.at(machine.button_wiring.at(button_i).at(0));
+      for (const std::size_t &counter_i : machine.button_wiring.at(button_i))
+      {
+        max_presses = std::min(machine.voltages.at(counter_i), max_presses);
+      }
+
+      max_button_presses.emplace_back(max_presses);
+    }
+
+    // Branch
     std::stack<VoltageSolution> solution_stack{};
     solution_stack.emplace(VoltageSolution(get_simplex_matrix_from_machine(machine), std::vector<Pivot>{}));
     std::optional<long long> min_presses_to_configure{};
@@ -387,7 +393,7 @@ namespace year2025::day10
                         { return v >= 0; }))
         {
           // Done solving
-          std::cout << std::format("Found solution in {} presses. Stack size {}", solution.matrix.at(height - 1).at(width - 1), solution_stack.size()) << std::endl;
+          std::cout << std::format("Found solution in {} presses. Iterations {}. Stack size {}", solution.matrix.at(height - 1).at(width - 1), num_iterations, solution_stack.size()) << std::endl;
           min_presses_to_configure = solution.matrix.at(height - 1).at(width - 1);
         }
         else if (!min_presses_to_configure || (solution.matrix.at(height - 1).at(width - 1) < (*min_presses_to_configure - 1)))
@@ -435,17 +441,23 @@ namespace year2025::day10
                                { return pivot.column == pivot_column.index && pivot.row == pivot_row.index; }))
               {
                 // Pivot
-                std::optional<std::vector<std::vector<long long>>> next_matrix = pivot(solution.matrix, pivot_column.index, pivot_row.index);
+                // TODO: The bounding needs to be enforced on the pivot itself.
+                std::vector<std::vector<long long>> next_matrix = pivot(solution.matrix, pivot_column.index, pivot_row.index);
 
-                if (next_matrix)
+                std::string next_matrix_key = convert_matrix_to_str(next_matrix);
+                if (!has_seen.contains(next_matrix_key))
                 {
-                  std::string next_matrix_key = convert_matrix_to_str(*next_matrix);
-                  if (!has_seen.contains(next_matrix_key))
+                  bool is_bounded = true;
+                  for (std::size_t button_i = 0; (button_i < machine.button_wiring.size()) && is_bounded; button_i++)
+                  {
+                    is_bounded = is_bounded && (next_matrix.at(next_matrix.size() - 1).at(machine.voltages.size() * 2 + button_i) <= max_button_presses.at(button_i));
+                  }
+                  if (is_bounded)
                   {
                     std::vector<Pivot> next_visited_pivots = solution.visited_pivots;
                     next_visited_pivots.emplace_back(Pivot(pivot_column.index, pivot_row.index));
 
-                    solution_stack.emplace(VoltageSolution(*next_matrix, next_visited_pivots));
+                    solution_stack.emplace(VoltageSolution(next_matrix, next_visited_pivots));
                     has_seen.emplace(next_matrix_key);
                   }
                 }
@@ -466,7 +478,7 @@ namespace year2025::day10
     }
     else
     {
-      throw std::invalid_argument{"Failed to find solution"};
+      throw std::invalid_argument{std::format("Failed to find solution after: {} iterations", num_iterations)};
     }
   }
 
