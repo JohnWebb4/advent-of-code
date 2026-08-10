@@ -13,8 +13,8 @@
 // Declarations
 
 static int read_input_file(int *arr, size_t size);
-static int test_lib_chronal_get_result_frequency(int *arr, size_t size, char *name, int expected);
-static int test_lib_chronal_first_frequency_twice(int *arr, size_t size, char *name, int expected);
+static int test_lib_chronal_get_result_frequency(const int *arr, size_t size, const char *name, int expected);
+static int test_lib_chronal_first_frequency_twice(const int *arr, size_t size, const char *name, int expected);
 
 // Definitions
 
@@ -23,7 +23,7 @@ int main(void)
     bool is_success = true;
     int test_inputs[TEST_INPUT_LENGTH];
 
-    if (read_input_file(test_inputs, TEST_INPUT_LENGTH) == ERANGE)
+    if (read_input_file(test_inputs, TEST_INPUT_LENGTH) == EXIT_FAILURE)
     {
         perror("Error reading test input");
         return EXIT_FAILURE;
@@ -32,57 +32,29 @@ int main(void)
     int part_1_test_1[] = {1, -2, 3, 1};
 
     // BEGIN TESTS
-
-    if (test_lib_chronal_get_result_frequency(part_1_test_1, 4, "Part 1 Test 1", 3) != EXIT_SUCCESS)
-    {
-        is_success = false;
-    }
+    is_success &= (test_lib_chronal_get_result_frequency(part_1_test_1, 4, "Part 1 Test 1", 3) == EXIT_SUCCESS);
 
     int part_1_test_2[] = {1, 1, 1};
-    if (test_lib_chronal_get_result_frequency(part_1_test_2, 3, "Part 1 Test 2", 3) != EXIT_SUCCESS)
-    {
-        is_success = false;
-    }
+    is_success &= (test_lib_chronal_get_result_frequency(part_1_test_2, 3, "Part 1 Test 2", 3) == EXIT_SUCCESS);
 
-    if (test_lib_chronal_get_result_frequency(test_inputs, (int)TEST_INPUT_LENGTH, "Part 1 Input", 500) != EXIT_SUCCESS)
-    {
-        is_success = false;
-    }
+    is_success &= (test_lib_chronal_get_result_frequency(test_inputs, (int)TEST_INPUT_LENGTH, "Part 1 Input", 500) == EXIT_SUCCESS);
 
     int part_2_test_1[] = {1, -2, 3, 1};
-    if (test_lib_chronal_first_frequency_twice(part_2_test_1, 4, "Part 2 Test 1", 2) != EXIT_SUCCESS)
-    {
-        is_success = false;
-    }
+    is_success &= (test_lib_chronal_first_frequency_twice(part_2_test_1, 4, "Part 2 Test 1", 2) == EXIT_SUCCESS);
 
     int part_2_test_2[] = {1, -1};
-    if (test_lib_chronal_first_frequency_twice(part_2_test_2, 2, "Part 2 Test 2", 0) != EXIT_SUCCESS)
-    {
-        is_success = false;
-    }
+    is_success &= (test_lib_chronal_first_frequency_twice(part_2_test_2, 2, "Part 2 Test 2", 0) == EXIT_SUCCESS);
 
     int part_2_test_3[] = {3, 3, 4, -2, -4};
-    if (test_lib_chronal_first_frequency_twice(part_2_test_3, 5, "Part 2 Test 3", 10) != EXIT_SUCCESS)
-    {
-        is_success = false;
-    }
+    is_success &= (test_lib_chronal_first_frequency_twice(part_2_test_3, 5, "Part 2 Test 3", 10) == EXIT_SUCCESS);
 
     int part_2_test_4[] = {-6, +3, +8, +5, -6};
-    if (test_lib_chronal_first_frequency_twice(part_2_test_4, 5, "Part 2 Test 4", 5) != EXIT_SUCCESS)
-    {
-        is_success = false;
-    }
+    is_success &= (test_lib_chronal_first_frequency_twice(part_2_test_4, 5, "Part 2 Test 4", 5) == EXIT_SUCCESS);
 
     int part_2_test_5[] = {+7, +7, -2, -7, -4};
-    if (test_lib_chronal_first_frequency_twice(part_2_test_5, 5, "Part 2 Test 5", 14) != EXIT_SUCCESS)
-    {
-        is_success = false;
-    }
+    is_success &= (test_lib_chronal_first_frequency_twice(part_2_test_5, 5, "Part 2 Test 5", 14) == EXIT_SUCCESS);
 
-    if (test_lib_chronal_first_frequency_twice(test_inputs, TEST_INPUT_LENGTH, "Part 2 Input", 709) != EXIT_SUCCESS)
-    {
-        is_success = false;
-    }
+    is_success &= (test_lib_chronal_first_frequency_twice(test_inputs, TEST_INPUT_LENGTH, "Part 2 Input", 709) == EXIT_SUCCESS);
 
     // END TESTS
 
@@ -98,7 +70,7 @@ int main(void)
     }
 }
 
-static int test_lib_chronal_get_result_frequency(int *arr, size_t size, char *name, int expected)
+static int test_lib_chronal_get_result_frequency(const int *arr, size_t size, const char *name, int expected)
 {
     int result = chronal_get_result_frequency(arr, size);
     if (result != expected)
@@ -110,18 +82,18 @@ static int test_lib_chronal_get_result_frequency(int *arr, size_t size, char *na
     return EXIT_SUCCESS;
 }
 
-static int test_lib_chronal_first_frequency_twice(int *arr, size_t size, char *name, int expected)
+static int test_lib_chronal_first_frequency_twice(const int *arr, size_t size, const char *name, int expected)
 {
     int result = 0;
     if (chronal_first_frequency_twice(arr, size, &result) != EXIT_SUCCESS)
     {
-        fprintf(stderr, "2018 Day 02 %s Error\n", name);
+        fprintf(stderr, "2018 Day 01 %s Error\n", name);
         return EXIT_FAILURE;
     }
 
     if (result != expected)
     {
-        fprintf(stderr, "2018 Day 02 %s Failed: %d != %d\n", name, result, expected);
+        fprintf(stderr, "2018 Day 01 %s Failed: %d != %d\n", name, result, expected);
         return EXIT_FAILURE;
     }
 
@@ -135,7 +107,7 @@ static int read_input_file(int *arr, size_t size)
     if (file == NULL)
     {
         perror("Error opening file");
-        return ERANGE;
+        return EXIT_FAILURE;
     }
 
     char line[MAX_LINE_LENGTH];
@@ -146,7 +118,7 @@ static int read_input_file(int *arr, size_t size)
         if (res == NULL)
         {
             perror("Error reading file");
-            return ERANGE;
+            return EXIT_FAILURE;
         }
 
         errno = 0;
@@ -157,12 +129,12 @@ static int read_input_file(int *arr, size_t size)
         if (endptr == startptr)
         {
             perror("Error: No digits found");
-            return ERANGE;
+            return EXIT_FAILURE;
         }
         else if (errno == ERANGE)
         {
             perror("Error: Number out of range");
-            return ERANGE;
+            return EXIT_FAILURE;
         }
         else
         {

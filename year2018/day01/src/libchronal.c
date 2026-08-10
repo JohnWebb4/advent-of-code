@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "chronalset.h"
 
@@ -6,7 +7,7 @@
 
 static const size_t MAX_FREQ_TWICE_ITER = 1000000;
 
-int chronal_get_result_frequency(int *freq_changes, size_t size)
+int chronal_get_result_frequency(const int *freq_changes, size_t size)
 {
     int pos = 0;
 
@@ -18,12 +19,22 @@ int chronal_get_result_frequency(int *freq_changes, size_t size)
     return pos;
 }
 
-int chronal_first_frequency_twice(int *freq_changes, size_t size, int *result)
+int chronal_first_frequency_twice(const int *freq_changes, size_t size, int *result)
 {
     struct ChronalSet *prev_pos = chronal_set_create();
+    if (prev_pos == NULL)
+    {
+        return EXIT_FAILURE;
+    }
 
     long long pos = 0;
-    chronal_set_add(prev_pos, 0);
+    if (!chronal_set_add(prev_pos, 0))
+    {
+        chronal_set_destroy(prev_pos);
+        prev_pos = NULL;
+
+        return EXIT_FAILURE;
+    }
 
     for (size_t i = 0; i < MAX_FREQ_TWICE_ITER; i++)
     {
@@ -33,18 +44,26 @@ int chronal_first_frequency_twice(int *freq_changes, size_t size, int *result)
         if (chronal_set_contains(prev_pos, pos))
         {
             chronal_set_destroy(prev_pos);
+            prev_pos = NULL;
 
             *result = pos;
             return EXIT_SUCCESS;
         }
         else
         {
-            chronal_set_add(prev_pos, pos);
+            if (!chronal_set_add(prev_pos, pos))
+            {
+                chronal_set_destroy(prev_pos);
+                prev_pos = NULL;
+
+                return EXIT_FAILURE;
+            }
         }
     }
 
-    printf("Failed to find solution in %zu iterations\n", MAX_FREQ_TWICE_ITER);
+    chronal_set_destroy(prev_pos);
+    prev_pos = NULL;
 
-    result = NULL;
+    fprintf(stderr, "Failed to find solution in %zu iterations\n", MAX_FREQ_TWICE_ITER);
     return EXIT_FAILURE;
 }

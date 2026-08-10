@@ -3,8 +3,9 @@
 
 #include "chronalset.h"
 
-static unsigned int hash_function(int x)
+static unsigned int hash_function(int value)
 {
+    unsigned int x = (unsigned int)value;
     x ^= x >> 16;
     x = (x * 0x85ebca6b) & 0xffffffff;
     x ^= x >> 13;
@@ -14,9 +15,9 @@ static unsigned int hash_function(int x)
     return x % SET_NUM_BUCKETS;
 }
 
-struct ChronalSet *chronal_set_create()
+struct ChronalSet *chronal_set_create(void)
 {
-    struct ChronalSet *set = malloc(sizeof(struct ChronalSet));
+    struct ChronalSet *set = calloc(1, sizeof(struct ChronalSet));
     if (!set)
     {
         return NULL;
@@ -25,7 +26,7 @@ struct ChronalSet *chronal_set_create()
     return set;
 }
 
-bool chronal_set_contains(struct ChronalSet *set, int value)
+bool chronal_set_contains(const struct ChronalSet *set, int value)
 {
     unsigned int index = hash_function(value);
     struct ChronalSetNode *current = set->buckets[index];

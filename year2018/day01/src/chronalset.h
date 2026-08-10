@@ -16,8 +16,8 @@ struct ChronalSet
     struct ChronalSetNode *buckets[SET_NUM_BUCKETS]; 
 };
 
-struct ChronalSet *chronal_set_create();
-bool chronal_set_contains(struct ChronalSet *set, int value);
+struct ChronalSet *chronal_set_create(void);
+bool chronal_set_contains(const struct ChronalSet *set, int value);
 bool chronal_set_add(struct ChronalSet *set, int value);
 void chronal_set_destroy(struct ChronalSet *set);
 
