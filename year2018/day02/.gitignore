@@ -1,0 +1,6 @@
+/obj/*
+/bin/*
+x64/*
+day02/*
+.vs/*
+build/*
