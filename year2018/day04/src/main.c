@@ -269,24 +269,27 @@ static int extract_regex_string(regmatch_t regex_group, const char *input, char 
 
 static int compare_events(const void *event_1, const void *event_2)
 {
-    struct libguard_event *e_1 = (struct libguard_event *)event_1;
-    struct libguard_event *e_2 = (struct libguard_event *)event_2;
+    const struct libguard_event *e_1 = event_1;
+    const struct libguard_event *e_2 = event_2;
 
-    time_t time_1 = mktime(&e_1->date_time);
+    const struct tm *t_1 = &e_1->date_time;
+    const struct tm *t_2 = &e_2->date_time;
 
-    if (time_1 == -1)
+    if (t_1->tm_year != t_2->tm_year)
     {
-        perror("Error parsing date time to time_t");
-        return 0;
+        return t_1->tm_year - t_2->tm_year;
     }
-
-    time_t time_2 = mktime(&e_2->date_time);
-
-    if (time_2 == -1)
+    if (t_1->tm_mon != t_2->tm_mon)
     {
-        perror("Error parsing date time to time_t");
-        return 0;
+        return t_1->tm_mon - t_2->tm_mon;
     }
-
-    return time_2 - time_1;
+    if (t_1->tm_mday != t_2->tm_mday)
+    {
+        return t_1->tm_mday - t_2->tm_mday;
+    }
+    if (t_1->tm_hour != t_2->tm_hour)
+    {
+        return t_1->tm_hour - t_2->tm_hour;
+    }
+    return t_1->tm_min - t_2->tm_min;
 }
