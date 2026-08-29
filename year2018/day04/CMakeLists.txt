@@ -8,11 +8,13 @@ set(CMAKE_CXX_FLAGS_RELEASE_INIT "-Wall -Wextra -Wpedantic -Wshadow -Wconversion
 
 add_executable(day04)
 
+target_compile_options(day04 PRIVATE -std=c23)
+
 target_sources(day04
     PRIVATE
         ./src/main.c
         ./src/libguard.c
-        ./src/libguardevent.c
+        ./src/libguard_event.c
 
     PUBLIC
         FILE_SET myHeaders
@@ -21,5 +23,5 @@ target_sources(day04
             include
         FILES
             ./include/libguard.h
-            ./include/libguardevent.h
+            ./include/libguard_event.h
 )

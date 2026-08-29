@@ -1,10 +1,10 @@
 #include <stdio.h>
 
-#include "libguardevent.h"
+#include "libguard_event.h"
 
 #include "libguard.h"
 
-int libguard_get_strategy_1_best_guard(struct LibGuardEvent *events, size_t events_length)
+int libguard_get_strategy_1_best_guard(struct libguard_event *events, size_t events_length)
 {
     return -1;
 }
