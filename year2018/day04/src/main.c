@@ -45,11 +45,13 @@ struct libguard_event_parser
     const regex_t *regex_libguard_event_wakes_up;
 };
 
-int test_get_strategy_1_best_guard(const char *name, struct libguard_event *events, size_t events_length, int expected_id);
-int parse_libguard_event(struct libguard_event *event, struct libguard_event_parser *parser, char *event_string);
+static int test_get_strategy_1_best_guard(const char *name, struct libguard_event *events, size_t events_length, int expected_id);
+static int parse_libguard_event(struct libguard_event *event, struct libguard_event_parser *parser, char *event_string);
 
-int extract_regex_int(regmatch_t regex_group, const char *input, int *result);
-int extract_regex_string(regmatch_t regex_group, const char *input, char **result);
+static int extract_regex_int(regmatch_t regex_group, const char *input, int *result);
+static int extract_regex_string(regmatch_t regex_group, const char *input, char **result);
+
+static int compare_events(const void *event_1, const void *event_2);
 
 int main(void)
 {
@@ -105,6 +107,8 @@ int main(void)
     regfree(&regex_libguard_event_falls_asleep);
     regfree(&regex_libguard_event_wakes_up);
 
+    qsort(events_test_1, TEST_INPUT_1_LENGTH, sizeof(struct libguard_event), compare_events);
+
     is_success &= (test_get_strategy_1_best_guard("Part 1 Test 1", events_test_1, TEST_INPUT_1_LENGTH, 240) == EXIT_SUCCESS);
 
     if (is_success)
@@ -119,7 +123,7 @@ int main(void)
     }
 }
 
-int test_get_strategy_1_best_guard(const char *name, struct libguard_event *events, size_t events_length, int expected_id)
+static int test_get_strategy_1_best_guard(const char *name, struct libguard_event *events, size_t events_length, int expected_id)
 {
     int result_id = libguard_get_strategy_1_best_guard(events, events_length);
 
@@ -132,7 +136,7 @@ int test_get_strategy_1_best_guard(const char *name, struct libguard_event *even
     return EXIT_FAILURE;
 }
 
-int parse_libguard_event(struct libguard_event *event, struct libguard_event_parser *parser, char *event_string)
+static int parse_libguard_event(struct libguard_event *event, struct libguard_event_parser *parser, char *event_string)
 {
     regmatch_t event_matches[3];
     int event_result = regexec(parser->regex_libguard_event, event_string, 3, event_matches, 0);
@@ -161,6 +165,7 @@ int parse_libguard_event(struct libguard_event *event, struct libguard_event_par
         return EXIT_FAILURE;
     }
 
+    memset(&event->date_time, 0, sizeof(event->date_time));
     if (strptime(date_string, "%Y-%m-%d %H:%M", &event->date_time) == NULL)
     {
         perror("Failed to parse date time string");
@@ -215,7 +220,7 @@ int parse_libguard_event(struct libguard_event *event, struct libguard_event_par
     return EXIT_SUCCESS;
 }
 
-int extract_regex_int(regmatch_t regex_group, const char *input, int *result)
+static int extract_regex_int(regmatch_t regex_group, const char *input, int *result)
 {
     char *group_str = NULL;
     if (extract_regex_string(regex_group, input, &group_str) != 0)
@@ -245,7 +250,7 @@ int extract_regex_int(regmatch_t regex_group, const char *input, int *result)
     return EXIT_SUCCESS;
 }
 
-int extract_regex_string(regmatch_t regex_group, const char *input, char **result)
+static int extract_regex_string(regmatch_t regex_group, const char *input, char **result)
 {
     size_t reg_length = regex_group.rm_eo - regex_group.rm_so;
     char *group_str = malloc(reg_length + 1);
@@ -260,4 +265,28 @@ int extract_regex_string(regmatch_t regex_group, const char *input, char **resul
     *result = group_str;
 
     return EXIT_SUCCESS;
+}
+
+static int compare_events(const void *event_1, const void *event_2)
+{
+    struct libguard_event *e_1 = (struct libguard_event *)event_1;
+    struct libguard_event *e_2 = (struct libguard_event *)event_2;
+
+    time_t time_1 = mktime(&e_1->date_time);
+
+    if (time_1 == -1)
+    {
+        perror("Error parsing date time to time_t");
+        return 0;
+    }
+
+    time_t time_2 = mktime(&e_2->date_time);
+
+    if (time_2 == -1)
+    {
+        perror("Error parsing date time to time_t");
+        return 0;
+    }
+
+    return time_2 - time_1;
 }
