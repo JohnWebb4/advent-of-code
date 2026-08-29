@@ -1,0 +1,10 @@
+{
+    "version": 0,
+    "configurations": [
+        {
+            "name": "Mac",
+            "cStandard": "c23",
+            "intelliSenseMode": "macos-clang-arm64"
+        }
+    ]
+}

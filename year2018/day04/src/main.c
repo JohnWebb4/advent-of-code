@@ -2,6 +2,9 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#include <libguard.h>
+#include <libguardevent.h>
+
 static const char *TEST_INPUT_1[] = {
     "[1518-11-01 00:00] Guard #10 begins shift",
     "[1518-11-01 00:05] falls asleep",
@@ -21,19 +24,28 @@ static const char *TEST_INPUT_1[] = {
     "[1518-11-05 00:45] falls asleep",
     "[1518-11-05 00:55] wakes up",
 };
-static const size_t TEST_INPUT_1_LENGTH = 17;
+constexpr size_t TEST_INPUT_1_LENGTH = 17;
 
-// Private Declarations
+constexpr size_t INPUT_LENGTH = 1186;
 
-int test_strategy_1_best_guard(const char *name, char **input, int input_length, int expected);
-
-// Definitions
+int test_get_strategy_1_best_guard(const char *name, struct LibGuardEvent *events, size_t events_length, int expected_id);
+int parse_libguard_event(struct LibGuardEvent *event, char *event_string);
 
 int main(void)
 {
     bool is_success = true;
 
-    is_success &= (test_strategy_1_best_guard("Part 1 Test 1", (char **)TEST_INPUT_1, TEST_INPUT_1_LENGTH, 240) == EXIT_SUCCESS);
+    struct LibGuardEvent events_test_1[TEST_INPUT_1_LENGTH];
+    for (size_t event_i = 0; event_i < TEST_INPUT_1_LENGTH; event_i++)
+    {
+        if (parse_libguard_event(&events_test_1[event_i], (char *)TEST_INPUT_1[event_i]) != EXIT_SUCCESS)
+        {
+            perror("Error parsing event test input");
+            return EXIT_FAILURE;
+        }
+    }
+
+    is_success &= (test_get_strategy_1_best_guard("Part 1 Test 1", events_test_1, TEST_INPUT_1_LENGTH, 240) == EXIT_SUCCESS);
 
     if (is_success)
     {
@@ -47,7 +59,20 @@ int main(void)
     }
 }
 
-int test_strategy_1_best_guard(const char *name, char **input, int input_length, int expected)
+int test_get_strategy_1_best_guard(const char *name, struct LibGuardEvent *events, size_t events_length, int expected_id)
 {
+    int result_id = libguard_get_strategy_1_best_guard(events, events_length);
+
+    if (result_id == expected_id)
+    {
+        return EXIT_SUCCESS;
+    }
+
+    fprintf(stderr, "2018 Day 04 %s: %d != %d\n", name, result_id, expected_id);
     return EXIT_FAILURE;
+}
+
+int parse_libguard_event(struct LibGuardEvent *event, char *event_string)
+{
+    return EXIT_SUCCESS;
 }
