@@ -1,7 +1,5 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <errno.h>
 #include <limits.h>
 #include <memory.h>
@@ -30,17 +28,25 @@ static const char *TEST_INPUT_1[] = {
     "[1518-11-05 00:45] falls asleep",
     "[1518-11-05 00:55] wakes up",
 };
-#define TEST_INPUT_1_LENGTH 17
+#define TEST_INPUT_1_LENGTH sizeof(TEST_INPUT_1) / sizeof(TEST_INPUT_1[0])
 
 #define INPUT_LENGTH 1186
 
 const static char *LIBGUARD_EVENT_PATTERN = "\\[([a-zA-Z -:]+)\\] ([a-zA-Z #0-9]+)";
 const static char *LIBGUARD_EVENT_GUARD_BEGINS_SHIFT_PATTERN = "Guard #([0-9]+) begins shift";
 const static char *LIBGUARD_EVENT_FALLS_ASLEEP_PATTERN = "falls asleep";
-const static char *LIBGUARD_EVENT_WAKES_UP = "wakes up";
+const static char *LIBGUARD_EVENT_WAKES_UP_PATTERN = "wakes up";
+
+struct libguard_event_parser
+{
+    const regex_t *regex_libguard_event;
+    const regex_t *regex_libguard_event_guard_begins_shift;
+    const regex_t *regex_libguard_event_falls_asleep;
+    const regex_t *regex_libguard_event_wakes_up;
+};
 
 int test_get_strategy_1_best_guard(const char *name, struct libguard_event *events, size_t events_length, int expected_id);
-int parse_libguard_event(struct libguard_event *event, regex_t *regex_libguard_event, regex_t *regex_libguard_event_guard_begins_shift, regex_t *regex_libguard_event_falls_asleep, regex_t *regex_libguard_event_wakes_up, char *event_string);
+int parse_libguard_event(struct libguard_event *event, struct libguard_event_parser *parser, char *event_string);
 
 int extract_regex_int(regmatch_t regex_group, const char *input, int *result);
 int extract_regex_string(regmatch_t regex_group, const char *input, char **result);
@@ -52,35 +58,42 @@ int main(void)
     regex_t regex_libguard_event;
     if (regcomp(&regex_libguard_event, LIBGUARD_EVENT_PATTERN, REG_EXTENDED) != 0)
     {
-        perror("Could not compile event regex\n");
+        perror("Could not compile event regex");
         return EXIT_FAILURE;
     }
 
     regex_t regex_libguard_event_guard_begins_shift;
     if (regcomp(&regex_libguard_event_guard_begins_shift, LIBGUARD_EVENT_GUARD_BEGINS_SHIFT_PATTERN, REG_EXTENDED) != 0)
     {
-        perror("Could not compile guard begins shift regex\n");
+        perror("Could not compile guard begins shift regex");
         return EXIT_FAILURE;
     }
 
     regex_t regex_libguard_event_falls_asleep;
     if (regcomp(&regex_libguard_event_falls_asleep, LIBGUARD_EVENT_FALLS_ASLEEP_PATTERN, REG_EXTENDED) != 0)
     {
-        perror("Could not compile falls asleep regex\n");
+        perror("Could not compile falls asleep regex");
         return EXIT_FAILURE;
     }
 
     regex_t regex_libguard_event_wakes_up;
-    if (regcomp(&regex_libguard_event_wakes_up, LIBGUARD_EVENT_WAKES_UP, REG_EXTENDED) != 0)
+    if (regcomp(&regex_libguard_event_wakes_up, LIBGUARD_EVENT_WAKES_UP_PATTERN, REG_EXTENDED) != 0)
     {
-        perror("Could not compile wakes up regex\n");
+        perror("Could not compile wakes up regex");
         return EXIT_FAILURE;
     }
+
+    struct libguard_event_parser parser = {
+        .regex_libguard_event = &regex_libguard_event,
+        .regex_libguard_event_guard_begins_shift = &regex_libguard_event_guard_begins_shift,
+        .regex_libguard_event_falls_asleep = &regex_libguard_event_falls_asleep,
+        .regex_libguard_event_wakes_up = &regex_libguard_event_wakes_up,
+    };
 
     struct libguard_event events_test_1[TEST_INPUT_1_LENGTH];
     for (size_t event_i = 0; event_i < TEST_INPUT_1_LENGTH; event_i++)
     {
-        if (parse_libguard_event(&events_test_1[event_i], &regex_libguard_event, &regex_libguard_event_guard_begins_shift, &regex_libguard_event_falls_asleep, &regex_libguard_event_wakes_up, (char *)TEST_INPUT_1[event_i]) != EXIT_SUCCESS)
+        if (parse_libguard_event(&events_test_1[event_i], &parser, (char *)TEST_INPUT_1[event_i]) != EXIT_SUCCESS)
         {
             perror("Error parsing event test input");
             return EXIT_FAILURE;
@@ -96,12 +109,12 @@ int main(void)
 
     if (is_success)
     {
-        printf("Year 2018 Day 03 Passed\n");
+        printf("Year 2018 Day 04 Passed\n");
         return EXIT_SUCCESS;
     }
     else
     {
-        printf("Year 2018 Day 03 Failed\n");
+        printf("Year 2018 Day 04 Failed\n");
         return EXIT_FAILURE;
     }
 }
@@ -115,18 +128,18 @@ int test_get_strategy_1_best_guard(const char *name, struct libguard_event *even
         return EXIT_SUCCESS;
     }
 
-    fprintf(stderr, "2018 Day 04 %s: %d != %d\n", name, result_id, expected_id);
+    fprintf(stderr, "2018 Day 04 %s Failed: %d != %d\n", name, result_id, expected_id);
     return EXIT_FAILURE;
 }
 
-int parse_libguard_event(struct libguard_event *event, regex_t *regex_libguard_event, regex_t *regex_libguard_event_guard_begins_shift, regex_t *regex_libguard_event_falls_asleep, regex_t *regex_libguard_event_wakes_up, char *event_string)
+int parse_libguard_event(struct libguard_event *event, struct libguard_event_parser *parser, char *event_string)
 {
     regmatch_t event_matches[3];
-    int event_result = regexec(regex_libguard_event, event_string, 3, event_matches, 0);
+    int event_result = regexec(parser->regex_libguard_event, event_string, 3, event_matches, 0);
     if (event_result != 0)
     {
         char msgbuf[100];
-        regerror(event_result, regex_libguard_event, msgbuf, sizeof(msgbuf));
+        regerror(event_result, parser->regex_libguard_event, msgbuf, sizeof(msgbuf));
         fprintf(stderr, "Regex match failed: %s\n", msgbuf);
 
         return EXIT_FAILURE;
@@ -134,7 +147,7 @@ int parse_libguard_event(struct libguard_event *event, regex_t *regex_libguard_e
 
     for (size_t group_i = 0; group_i < 3; group_i++)
     {
-        if (event_matches[0].rm_so == (regoff_t)-1)
+        if (event_matches[group_i].rm_so == (regoff_t)-1)
         {
             perror("Failed to read regex group");
             return EXIT_FAILURE;
@@ -165,27 +178,35 @@ int parse_libguard_event(struct libguard_event *event, regex_t *regex_libguard_e
     }
 
     regmatch_t guard_match[2];
-    if (regexec(regex_libguard_event_guard_begins_shift, suffix, 2, guard_match, 0) == 0)
+    if (regexec(parser->regex_libguard_event_guard_begins_shift, suffix, 2, guard_match, 0) == 0)
     {
-        event->event_type = libguard_event_type_begin_shift;
+        event->event_type = BEGIN_SHIFT;
         int guard_id;
         if (extract_regex_int(guard_match[1], suffix, &guard_id) == EXIT_FAILURE)
         {
-            perror("Failed to extract group id\n");
+            perror("Failed to extract group id");
             return EXIT_FAILURE;
         }
 
         event->guard_id = guard_id;
     }
-    else if (regexec(regex_libguard_event_falls_asleep, suffix, 0, NULL, 0) == 0)
+    else if (regexec(parser->regex_libguard_event_falls_asleep, suffix, 0, NULL, 0) == 0)
     {
-        event->event_type = libguard_event_type_falls_asleep;
+        event->event_type = FALLS_ASLEEP;
         event->guard_id = -1;
     }
-    else if (regexec(regex_libguard_event_wakes_up, suffix, 0, NULL, 0) == 0)
+    else if (regexec(parser->regex_libguard_event_wakes_up, suffix, 0, NULL, 0) == 0)
     {
-        event->event_type = libguard_event_type_wakes_up;
+        event->event_type = WAKES_UP;
         event->guard_id = -1;
+    }
+    else
+    {
+        free(suffix);
+        suffix = NULL;
+
+        perror("Unrecognized event type");
+        return EXIT_FAILURE;
     }
 
     free(suffix);
@@ -204,7 +225,17 @@ int extract_regex_int(regmatch_t regex_group, const char *input, int *result)
     }
 
     char *group_end = NULL;
-    int value = strtol(group_str, &group_end, 10);
+    long value = strtol(group_str, &group_end, 10);
+
+    if (value < INT_MIN || value > INT_MAX)
+    {
+        perror("Value int out of bounds");
+
+        free(group_str);
+        group_str = NULL;
+
+        return EXIT_FAILURE;
+    }
 
     *result = value;
 
