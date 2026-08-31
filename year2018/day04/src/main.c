@@ -30,7 +30,9 @@ static const char *TEST_INPUT_1[] = {
 };
 #define TEST_INPUT_1_LENGTH sizeof(TEST_INPUT_1) / sizeof(TEST_INPUT_1[0])
 
+#define INPUT_FILENAME "./input.txt"
 #define INPUT_LENGTH 1186
+#define MAX_LINE_LENGTH 100
 
 const static char *LIBGUARD_EVENT_PATTERN = "\\[([a-zA-Z -:]+)\\] ([a-zA-Z #0-9]+)";
 const static char *LIBGUARD_EVENT_GUARD_BEGINS_SHIFT_PATTERN = "Guard #([0-9]+) begins shift";
@@ -45,7 +47,7 @@ struct libguard_event_parser
     const regex_t *regex_libguard_event_wakes_up;
 };
 
-static int test_get_strategy_1_best_guard(const char *name, struct libguard_event *events, size_t events_length, int expected_id);
+static int test_get_strategy_1_best_guard(const char *name, struct libguard_event *const *events, size_t events_length, int expected_id);
 static int parse_libguard_event(struct libguard_event *event, struct libguard_event_parser *parser, char *event_string);
 
 static int extract_regex_int(regmatch_t regex_group, const char *input, int *result);
@@ -92,15 +94,55 @@ int main(void)
         .regex_libguard_event_wakes_up = &regex_libguard_event_wakes_up,
     };
 
-    struct libguard_event events_test_1[TEST_INPUT_1_LENGTH];
+    struct libguard_event *events_test_1[TEST_INPUT_1_LENGTH];
     for (size_t event_i = 0; event_i < TEST_INPUT_1_LENGTH; event_i++)
     {
-        if (parse_libguard_event(&events_test_1[event_i], &parser, (char *)TEST_INPUT_1[event_i]) != EXIT_SUCCESS)
+        events_test_1[event_i] = malloc(sizeof(events_test_1[event_i]));
+        if (events_test_1[event_i] == NULL)
+        {
+            perror("Error allocating event test input");
+            return EXIT_FAILURE;
+        }
+        if (parse_libguard_event(events_test_1[event_i], &parser, (char *)TEST_INPUT_1[event_i]) != EXIT_SUCCESS)
         {
             perror("Error parsing event test input");
             return EXIT_FAILURE;
         }
     }
+
+    // char *input[INPUT_LENGTH];
+    // FILE *file = fopen(INPUT_FILENAME, "r");
+    // if (file == NULL)
+    // {
+    //     perror("Failed to open file");
+    //     return EXIT_FAILURE;
+    // }
+
+    // for (size_t line_i = 0; line_i < INPUT_LENGTH; line_i++)
+    // {
+    //     char line_buffer[MAX_LINE_LENGTH];
+    //     if (fgets(line_buffer, sizeof(line_buffer), file) != NULL)
+    //     {
+    //         input[line_i] = strdup(line_buffer);
+    //     }
+    // }
+    // fclose(file);
+
+    // struct libguard_event *events_input[INPUT_LENGTH];
+    // for (size_t event_i = 0; event_i < INPUT_LENGTH; event_i++)
+    // {
+    //     events_input[event_i] = malloc(sizeof(events_input[event_i]));
+    //     if (events_input[event_i] == NULL)
+    //     {
+    //         perror("Error allocating events input");
+    //         return EXIT_FAILURE;
+    //     }
+    //     if (parse_libguard_event(events_input[event_i], &parser, (char *)input[event_i]) != EXIT_SUCCESS)
+    //     {
+    //         perror("Error parsing event input");
+    //         return EXIT_FAILURE;
+    //     }
+    // }
 
     regfree(&regex_libguard_event);
     regfree(&regex_libguard_event_guard_begins_shift);
@@ -108,8 +150,10 @@ int main(void)
     regfree(&regex_libguard_event_wakes_up);
 
     qsort(events_test_1, TEST_INPUT_1_LENGTH, sizeof(struct libguard_event), compare_events);
+    // qsort(events_input, INPUT_LENGTH, sizeof(struct libguard_event), compare_events);
 
     is_success &= (test_get_strategy_1_best_guard("Part 1 Test 1", events_test_1, TEST_INPUT_1_LENGTH, 240) == EXIT_SUCCESS);
+    // is_success &= (test_get_strategy_1_best_guard("Part 1 Input", *events_input, INPUT_LENGTH, 0) == EXIT_SUCCESS);
 
     if (is_success)
     {
@@ -123,7 +167,7 @@ int main(void)
     }
 }
 
-static int test_get_strategy_1_best_guard(const char *name, struct libguard_event *events, size_t events_length, int expected_id)
+static int test_get_strategy_1_best_guard(const char *name, struct libguard_event *const *events, size_t events_length, int expected_id)
 {
     int result_id = libguard_get_strategy_1_best_guard(events, events_length);
 

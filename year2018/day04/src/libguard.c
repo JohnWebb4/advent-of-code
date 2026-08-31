@@ -5,7 +5,9 @@
 
 #include "libguard.h"
 
-long get_epoch_1518(const struct tm *time);
+static long get_epoch_1518(const struct tm *time);
+
+#define MINUTES_IN_A_DAY 1440
 
 struct libguard_sleep_times
 {
@@ -15,7 +17,7 @@ struct libguard_sleep_times
     int guard_id;
 };
 
-int libguard_get_strategy_1_best_guard(const struct libguard_event *events, size_t events_length)
+int libguard_get_strategy_1_best_guard(struct libguard_event *const *events, size_t events_length)
 {
     size_t num_sleep_times = 0;
     struct libguard_sleep_times sleep_times[10];
@@ -24,7 +26,7 @@ int libguard_get_strategy_1_best_guard(const struct libguard_event *events, size
     const struct tm *fell_asleep_time = NULL;
     for (size_t event_i = 0; event_i < events_length; event_i++)
     {
-        const struct libguard_event *event = &events[event_i];
+        const struct libguard_event *event = events[event_i];
 
         if (event->event_type == BEGIN_SHIFT)
         {
@@ -101,8 +103,8 @@ int libguard_get_strategy_1_best_guard(const struct libguard_event *events, size
         }
     }
 
-    int times_asleep_minute_in_a_day[1440];
-    for (size_t minute_i = 0; minute_i < 1440; minute_i++)
+    int times_asleep_minute_in_a_day[MINUTES_IN_A_DAY];
+    for (size_t minute_i = 0; minute_i < MINUTES_IN_A_DAY; minute_i++)
     {
         times_asleep_minute_in_a_day[minute_i] = 0;
     }
@@ -113,7 +115,7 @@ int libguard_get_strategy_1_best_guard(const struct libguard_event *events, size
         {
             for (long minute_asleep = sleep_times[sleep_time_i].epoch_1518_asleep; minute_asleep < sleep_times[sleep_time_i].epoch_1518_awake; minute_asleep++)
             {
-                int time_asleep_minute_in_a_day = minute_asleep % 1440;
+                int time_asleep_minute_in_a_day = minute_asleep % MINUTES_IN_A_DAY;
 
                 times_asleep_minute_in_a_day[time_asleep_minute_in_a_day] += 1;
             }
@@ -123,7 +125,7 @@ int libguard_get_strategy_1_best_guard(const struct libguard_event *events, size
     int max_times_asleep = 0;
     int minute_most_asleep_in_a_day = 0;
 
-    for (size_t minute_i = 0; minute_i < 1440; minute_i++)
+    for (size_t minute_i = 0; minute_i < MINUTES_IN_A_DAY; minute_i++)
     {
         if (times_asleep_minute_in_a_day[minute_i] > max_times_asleep)
         {
@@ -135,7 +137,7 @@ int libguard_get_strategy_1_best_guard(const struct libguard_event *events, size
     return guard_id * minute_most_asleep_in_a_day;
 }
 
-long get_epoch_1518(const struct tm *time)
+static long get_epoch_1518(const struct tm *time)
 {
     long epoch_1518 = time->tm_yday;
     epoch_1518 = (24 * epoch_1518) + time->tm_hour;
