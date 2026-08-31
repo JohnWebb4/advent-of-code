@@ -5,22 +5,26 @@
 
 #include "libguard.h"
 
+long get_epoch_1518(const struct tm *time);
+
 struct libguard_sleep_times
 {
-    int minutes_asleep;
+    long minutes_asleep;
+    long epoch_1518_asleep;
+    long epoch_1518_awake;
     int guard_id;
 };
 
-int libguard_get_strategy_1_best_guard(struct libguard_event *events, size_t events_length)
+int libguard_get_strategy_1_best_guard(const struct libguard_event *events, size_t events_length)
 {
     size_t num_sleep_times = 0;
     struct libguard_sleep_times sleep_times[10];
 
     int current_guard = -1;
-    struct tm *fell_asleep_time = NULL;
+    const struct tm *fell_asleep_time = NULL;
     for (size_t event_i = 0; event_i < events_length; event_i++)
     {
-        struct libguard_event *event = &events[event_i];
+        const struct libguard_event *event = &events[event_i];
 
         if (event->event_type == BEGIN_SHIFT)
         {
@@ -44,13 +48,15 @@ int libguard_get_strategy_1_best_guard(struct libguard_event *events, size_t eve
                 return -1;
             }
 
-            int minute_asleep = fell_asleep_time->tm_min;
-            int minute_awake = event->date_time.tm_min;
+            long epoch_1518_asleep = get_epoch_1518(fell_asleep_time);
+            long epoch_1518_awake = get_epoch_1518(&event->date_time);
 
-            int diff_minutes = minute_awake - minute_asleep;
+            long diff_minutes = epoch_1518_awake - epoch_1518_asleep;
 
             sleep_times[num_sleep_times].guard_id = current_guard;
             sleep_times[num_sleep_times].minutes_asleep = diff_minutes;
+            sleep_times[num_sleep_times].epoch_1518_asleep = epoch_1518_asleep;
+            sleep_times[num_sleep_times].epoch_1518_awake = epoch_1518_awake;
             num_sleep_times++;
 
             fell_asleep_time = NULL;
@@ -95,5 +101,45 @@ int libguard_get_strategy_1_best_guard(struct libguard_event *events, size_t eve
         }
     }
 
-    return -1;
+    int times_asleep_minute_in_a_day[1440];
+    for (size_t minute_i = 0; minute_i < 1440; minute_i++)
+    {
+        times_asleep_minute_in_a_day[minute_i] = 0;
+    }
+
+    for (size_t sleep_time_i = 0; sleep_time_i < num_sleep_times; sleep_time_i++)
+    {
+        if (sleep_times[sleep_time_i].guard_id == guard_id)
+        {
+            for (long minute_asleep = sleep_times[sleep_time_i].epoch_1518_asleep; minute_asleep < sleep_times[sleep_time_i].epoch_1518_awake; minute_asleep++)
+            {
+                int time_asleep_minute_in_a_day = minute_asleep % 1440;
+
+                times_asleep_minute_in_a_day[time_asleep_minute_in_a_day] += 1;
+            }
+        }
+    }
+
+    int max_times_asleep = 0;
+    int minute_most_asleep_in_a_day = 0;
+
+    for (size_t minute_i = 0; minute_i < 1440; minute_i++)
+    {
+        if (times_asleep_minute_in_a_day[minute_i] > max_times_asleep)
+        {
+            max_times_asleep = times_asleep_minute_in_a_day[minute_i];
+            minute_most_asleep_in_a_day = minute_i;
+        }
+    }
+
+    return guard_id * minute_most_asleep_in_a_day;
+}
+
+long get_epoch_1518(const struct tm *time)
+{
+    long epoch_1518 = time->tm_yday;
+    epoch_1518 = (24 * epoch_1518) + time->tm_hour;
+    epoch_1518 = (60 * epoch_1518) + time->tm_min;
+
+    return epoch_1518;
 }
