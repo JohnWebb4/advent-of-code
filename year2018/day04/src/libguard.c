@@ -5,22 +5,22 @@
 
 #include "libguard.h"
 
-static long get_epoch_1518(const struct tm *time);
+static long minutes_since_midnight(const struct tm *time);
 
 #define MINUTES_IN_A_DAY 1440
 
 struct libguard_sleep_times
 {
     long minutes_asleep;
-    long epoch_1518_asleep;
-    long epoch_1518_awake;
+    long minute_asleep;
+    long minute_awake;
     int guard_id;
 };
 
 int libguard_get_strategy_1_best_guard(struct libguard_event *const *events, size_t events_length)
 {
     size_t num_sleep_times = 0;
-    struct libguard_sleep_times sleep_times[500];
+    struct libguard_sleep_times *sleep_times = calloc(events_length / 2 + 1, sizeof(*sleep_times));
 
     int current_guard = -1;
     const struct tm *fell_asleep_time = NULL;
@@ -50,41 +50,41 @@ int libguard_get_strategy_1_best_guard(struct libguard_event *const *events, siz
                 return -1;
             }
 
-            long epoch_1518_asleep = get_epoch_1518(fell_asleep_time);
-            long epoch_1518_awake = get_epoch_1518(&event->date_time);
+            long minute_asleep = minutes_since_midnight(fell_asleep_time);
+            long minute_awake = minutes_since_midnight(&event->date_time);
 
-            long diff_minutes = epoch_1518_awake - epoch_1518_asleep;
+            long diff_minutes = minute_awake - minute_asleep;
 
             sleep_times[num_sleep_times].guard_id = current_guard;
             sleep_times[num_sleep_times].minutes_asleep = diff_minutes;
-            sleep_times[num_sleep_times].epoch_1518_asleep = epoch_1518_asleep;
-            sleep_times[num_sleep_times].epoch_1518_awake = epoch_1518_awake;
+            sleep_times[num_sleep_times].minute_asleep = minute_asleep;
+            sleep_times[num_sleep_times].minute_awake = minute_awake;
             num_sleep_times++;
 
             fell_asleep_time = NULL;
         }
     }
 
-    int guard_ids[30];
-    int guard_minutes_asleep[100];
+    int *guard_ids = calloc(events_length, sizeof(*guard_ids));
+    long *guard_minutes_asleep = calloc(events_length, sizeof(guard_minutes_asleep));
     size_t num_guards = 0;
 
     for (size_t sleep_time_i = 0; sleep_time_i < num_sleep_times; sleep_time_i++)
     {
         struct libguard_sleep_times const *sleep_time = &sleep_times[sleep_time_i];
 
-        bool alread_exists = false;
+        bool already_exists = false;
         for (size_t guard_i = 0; guard_i < num_guards; guard_i++)
         {
             if (guard_ids[guard_i] == sleep_time->guard_id)
             {
                 guard_minutes_asleep[guard_i] += sleep_time->minutes_asleep;
-                alread_exists = true;
+                already_exists = true;
                 break;
             }
         }
 
-        if (!alread_exists)
+        if (!already_exists)
         {
             guard_ids[num_guards] = sleep_time->guard_id;
             guard_minutes_asleep[num_guards] = sleep_time->minutes_asleep;
@@ -92,7 +92,7 @@ int libguard_get_strategy_1_best_guard(struct libguard_event *const *events, siz
         }
     }
 
-    int max_minutes_asleep = 0;
+    long max_minutes_asleep = 0;
     int guard_id = -1;
     for (size_t guard_i = 0; guard_i < num_guards; guard_i++)
     {
@@ -113,7 +113,7 @@ int libguard_get_strategy_1_best_guard(struct libguard_event *const *events, siz
     {
         if (sleep_times[sleep_time_i].guard_id == guard_id)
         {
-            for (long minute_asleep = sleep_times[sleep_time_i].epoch_1518_asleep; minute_asleep < sleep_times[sleep_time_i].epoch_1518_awake; minute_asleep++)
+            for (long minute_asleep = sleep_times[sleep_time_i].minute_asleep; minute_asleep < sleep_times[sleep_time_i].minute_awake; minute_asleep++)
             {
                 int time_asleep_minute_in_a_day = minute_asleep % MINUTES_IN_A_DAY;
 
@@ -137,11 +137,10 @@ int libguard_get_strategy_1_best_guard(struct libguard_event *const *events, siz
     return guard_id * minute_most_asleep_in_a_day;
 }
 
-static long get_epoch_1518(const struct tm *time)
+static long minutes_since_midnight(const struct tm *time)
 {
-    long epoch_1518 = time->tm_yday;
-    epoch_1518 = (24 * epoch_1518) + time->tm_hour;
-    epoch_1518 = (60 * epoch_1518) + time->tm_min;
+    long minute = time->tm_hour;
+    minute = (60 * minute) + time->tm_min;
 
-    return epoch_1518;
+    return minute;
 }
