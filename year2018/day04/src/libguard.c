@@ -20,7 +20,7 @@ struct libguard_sleep_times
 int libguard_get_strategy_1_best_guard(struct libguard_event *const *events, size_t events_length)
 {
     size_t num_sleep_times = 0;
-    struct libguard_sleep_times sleep_times[10];
+    struct libguard_sleep_times sleep_times[500];
 
     int current_guard = -1;
     const struct tm *fell_asleep_time = NULL;
@@ -65,13 +65,13 @@ int libguard_get_strategy_1_best_guard(struct libguard_event *const *events, siz
         }
     }
 
-    int guard_ids[10];
-    int guard_minutes_asleep[10];
+    int guard_ids[30];
+    int guard_minutes_asleep[100];
     size_t num_guards = 0;
 
     for (size_t sleep_time_i = 0; sleep_time_i < num_sleep_times; sleep_time_i++)
     {
-        const struct libguard_sleep_times *sleep_time = &sleep_times[sleep_time_i];
+        struct libguard_sleep_times const *sleep_time = &sleep_times[sleep_time_i];
 
         bool alread_exists = false;
         for (size_t guard_i = 0; guard_i < num_guards; guard_i++)

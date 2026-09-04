@@ -97,7 +97,7 @@ int main(void)
     struct libguard_event *events_test_1[TEST_INPUT_1_LENGTH];
     for (size_t event_i = 0; event_i < TEST_INPUT_1_LENGTH; event_i++)
     {
-        events_test_1[event_i] = malloc(sizeof(events_test_1[event_i]));
+        events_test_1[event_i] = malloc(sizeof(*events_test_1[event_i]));
         if (events_test_1[event_i] == NULL)
         {
             perror("Error allocating event test input");
@@ -110,50 +110,50 @@ int main(void)
         }
     }
 
-    // char *input[INPUT_LENGTH];
-    // FILE *file = fopen(INPUT_FILENAME, "r");
-    // if (file == NULL)
-    // {
-    //     perror("Failed to open file");
-    //     return EXIT_FAILURE;
-    // }
+    char *input[INPUT_LENGTH];
+    FILE *file = fopen(INPUT_FILENAME, "r");
+    if (file == NULL)
+    {
+        perror("Failed to open file");
+        return EXIT_FAILURE;
+    }
 
-    // for (size_t line_i = 0; line_i < INPUT_LENGTH; line_i++)
-    // {
-    //     char line_buffer[MAX_LINE_LENGTH];
-    //     if (fgets(line_buffer, sizeof(line_buffer), file) != NULL)
-    //     {
-    //         input[line_i] = strdup(line_buffer);
-    //     }
-    // }
-    // fclose(file);
+    for (size_t line_i = 0; line_i < INPUT_LENGTH; line_i++)
+    {
+        char line_buffer[MAX_LINE_LENGTH];
+        if (fgets(line_buffer, sizeof(line_buffer), file) != NULL)
+        {
+            input[line_i] = strdup(line_buffer);
+        }
+    }
+    fclose(file);
 
-    // struct libguard_event *events_input[INPUT_LENGTH];
-    // for (size_t event_i = 0; event_i < INPUT_LENGTH; event_i++)
-    // {
-    //     events_input[event_i] = malloc(sizeof(events_input[event_i]));
-    //     if (events_input[event_i] == NULL)
-    //     {
-    //         perror("Error allocating events input");
-    //         return EXIT_FAILURE;
-    //     }
-    //     if (parse_libguard_event(events_input[event_i], &parser, (char *)input[event_i]) != EXIT_SUCCESS)
-    //     {
-    //         perror("Error parsing event input");
-    //         return EXIT_FAILURE;
-    //     }
-    // }
+    struct libguard_event *events_input[INPUT_LENGTH];
+    for (size_t event_i = 0; event_i < INPUT_LENGTH; event_i++)
+    {
+        events_input[event_i] = malloc(sizeof(*events_input[event_i]));
+        if (events_input[event_i] == NULL)
+        {
+            perror("Error allocating events input");
+            return EXIT_FAILURE;
+        }
+        if (parse_libguard_event(events_input[event_i], &parser, (char *)input[event_i]) != EXIT_SUCCESS)
+        {
+            perror("Error parsing event input");
+            return EXIT_FAILURE;
+        }
+    }
 
     regfree(&regex_libguard_event);
     regfree(&regex_libguard_event_guard_begins_shift);
     regfree(&regex_libguard_event_falls_asleep);
     regfree(&regex_libguard_event_wakes_up);
 
-    qsort(events_test_1, TEST_INPUT_1_LENGTH, sizeof(struct libguard_event), compare_events);
-    // qsort(events_input, INPUT_LENGTH, sizeof(struct libguard_event), compare_events);
+    qsort(events_test_1, TEST_INPUT_1_LENGTH, sizeof(events_test_1[0]), compare_events);
+    qsort(events_input, INPUT_LENGTH, sizeof(events_input[0]), compare_events);
 
     is_success &= (test_get_strategy_1_best_guard("Part 1 Test 1", events_test_1, TEST_INPUT_1_LENGTH, 240) == EXIT_SUCCESS);
-    // is_success &= (test_get_strategy_1_best_guard("Part 1 Input", *events_input, INPUT_LENGTH, 0) == EXIT_SUCCESS);
+    is_success &= (test_get_strategy_1_best_guard("Part 1 Input", events_input, INPUT_LENGTH, 143415) == EXIT_SUCCESS);
 
     if (is_success)
     {
@@ -313,8 +313,8 @@ static int extract_regex_string(regmatch_t regex_group, const char *input, char 
 
 static int compare_events(const void *event_1, const void *event_2)
 {
-    const struct libguard_event *e_1 = event_1;
-    const struct libguard_event *e_2 = event_2;
+    const struct libguard_event *e_1 = *(struct libguard_event *const *)event_1;
+    const struct libguard_event *e_2 = *(struct libguard_event *const *)event_2;
 
     const struct tm *t_1 = &e_1->date_time;
     const struct tm *t_2 = &e_2->date_time;
